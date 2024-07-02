@@ -1,0 +1,9 @@
+
+1. I have added some database schema'schema
+2. I have fully integrated the database
+3. I have worked on (Roles,Permissions,Department,Faculties,Classes and Course)
+    NOTE: the pages or the views i have stated, i have worked on it CRUD operation
+
+TASK
+* Migrate the tables and add your own data to see how it is .
+* also am expecting you do set the questions by now

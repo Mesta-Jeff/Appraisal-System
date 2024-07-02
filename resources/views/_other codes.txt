@@ -1,0 +1,114 @@
+// function toggleFullscreen() {
+// var fullscreenElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+
+//     if (!fullscreenElement) {
+//         var element = document.documentElement;
+
+//         if (element.requestFullscreen) {
+//             element.requestFullscreen();
+//         } else if (element.mozRequestFullScreen) {
+//             element.mozRequestFullScreen();
+//         } else if (element.webkitRequestFullscreen) {
+//             element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+//         } else if (element.msRequestFullscreen) {
+//             element.msRequestFullscreen();
+//         }
+//     } else {
+//         if (document.exitFullscreen) {
+//             document.exitFullscreen();
+//         } else if (document.mozCancelFullScreen) {
+//             document.mozCancelFullScreen();
+//         } else if (document.webkitExitFullscreen) {
+//             document.webkitExitFullscreen();
+//         } else if (document.msExitFullscreen) {
+//             document.msExitFullscreen();
+//         }
+//     }
+// }
+
+
+
+
+// Function to manually toggle fullscreen
+function toggleFullscreen() {
+    var element = document.documentElement;
+    
+    if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+}
+
+// Event listener for fullscreenchange event
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+// Function to handle changes in fullscreen state
+function handleFullscreenChange() {
+    var fullscreenElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+    if (fullscreenElement) {
+        $('#iclick').show();
+    } else {
+        $('#available-lecturers').fadeOut('slow', function() {
+            $('#security-notice').fadeIn('fast');
+            $('#iclick').hide();
+            $('#confirmcheck').prop('checked', false);
+        });
+        
+    }
+}
+
+$('#iclick').click(function() {
+    toggleFullscreen();
+});
+
+
+
+
+
+
+System Settings:
+    view-roles
+    view-permissions
+    view-departments
+    view-faculties
+    view-courses
+    view-classes
+    view-questions
+    system-config
+    system-dictionary
+    temp-appraisal
+Appraisal:
+    available-staff
+    rejected-appraisal
+    students-been-appraised
+    staff-been-appraised
+    appraisal-statistics
+    lecturer-based-statistics
+    department-based-statistics
+    faculty-based-statistics
+    list-of-appraised-staff
+    list-of-appraised-students
+User Management:
+    users-account
+    view-students
+    view-staff

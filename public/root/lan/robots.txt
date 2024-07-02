@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+  <title>PrimeNG</title>
+  <base href="">
+  <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, viewport-fit=cover">
+  <link rel="preconnect" href="https://primefaces.org">
+  <link rel="icon" type="image/x-icon" href="favicon.png">
+  <link rel="stylesheet" href="assets/showcase/styles/splash.css">
+  <link id="theme-link" rel="stylesheet" href="assets/components/themes/lara-light-blue/theme.css">
+  <link id="home-table-link" rel="stylesheet" href="assets/showcase/styles/layout/landing/themes/lara-light-blue/theme.css">
+  <meta property="og:image" content="https://primefaces.org/static/social/primeng-preview.jpg">
+<link rel="stylesheet" href="styles.59d6eeba35a3b740.css"></head>
+<body>
+    <app-root ng-version="16.2.0" ng-server-context="ssr"><router-outlet></router-outlet><ng-component><div class="flex card flex-column align-items-center justify-content-center gap-5 sm:p-8 h-screen"><div class="flex flex-column sm:flex-row align-items-center justify-content-center gap-3 text-primary"><span class="font-bold" style="font-size: 144px;"> 4 </span><div class="flex align-items-center justify-content-center bg-primary border-circle w-8rem h-8rem"><i class="pi pi-prime text-7xl"></i></div><span class="font-bold" style="font-size: 144px;"> 4 </span></div><div class="font-bold text-900 text-center text-6xl border-top-1 surface-border pt-5">PAGE NOT FOUND</div><p-button label="Go back to home" routerlink="/" class="p-element" ng-reflect-label="Go back to home" tabindex="0" ng-reflect-router-link="/"><button pripple="" class="p-ripple p-element p-button p-component" ng-reflect-ng-class="[object Object]" type="button" data-pc-name="button" data-pc-section="root"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={}--><!--bindings={}--><!--ng-container--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><span class="p-button-label" data-pc-section="label">Go back to home</span><!--bindings={
+  "ng-reflect-ng-if": "Go back to home"
+}--><!--bindings={}--></button></p-button></div></ng-component><!--container--></app-root>
+<script src="runtime.2440a8dbf1d06e13.js" type="module"></script><script src="polyfills.eee496ddfbde6d75.js" type="module"></script><script src="scripts.25861fbf0acba278.js" defer=""></script><script src="main.6165bcf06e096c4e.js" type="module"></script>
+
+</body></html>
