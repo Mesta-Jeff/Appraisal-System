@@ -2,9 +2,11 @@
 
 @extends('layout.main')
 
-@section('title', 'Department')
+@section('title', $title )
 
 @section('content')
+
+
 
 
 <div class="container-fluid">
@@ -30,11 +32,11 @@
             <div class="card">
                 <div class="card-body" style="margin: -10px 0  -10px 0;">
                     <div class="row">
-                        <div class="col-lg-6 col-sm-4 d-flex gap-2">
-                            <h4 class="page-title">Current @yield('title')</h4>
+                        <div class="col-lg-8 col-sm-6 d-flex gap-2">
+                            <h4 class="page-title">Semesters for - {{ $title }}</h4>
                             <button class="btn btn-danger" type="button" id="bulk-remove" style="display: none" > Remove</button>
                         </div>
-                        <div class="col-lg-6 col-sm-8">
+                        <div class="col-lg-4 col-sm-6">
                             <div class="d-flex gap-2 justify-content-lg-end mt-3 mt-lg-0">
                                 <button type="button" id="btnref" class="btn btn-secondary"><i class="mdi mdi-atom-variant spin"></i> Reload</button>
                                 <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Add New</button>
@@ -60,9 +62,11 @@
                                 <tr class="text-uppercase">
                                     <th><input type="checkbox" id="selectAllCheckboxes"/></th>
                                     <th>#</th>
-                                    <th>Faculty</th>
-                                    <th>Department</th>
+                                    <th>Title</th>
+                                    <th>Starting</th>
+                                    <th>Ending</th>
                                     <th>Description</th>
+                                    <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -95,18 +99,29 @@
             <div class="modal-body">
                 <form class="px-3" id="my-form">
                     <input type="hidden" id="gottenId" name="id">
-                    <div class="mb-2">
-                        <label for="username" class="form-label">Available Faculties </label>
-                        <select id="faculty" name="faculty" class="select2 form-control" data-toggle="select2">
+                    <input type="hidden" id="session_id" name="session_id" value="{{$session_id}}">
+
+                    <div class="mb-1" id="accessors-1">
+                        <label for="types" class="form-label">Select available semester</label>
+                        <select id="semester" name="semester_id" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
-                    <div class="mb-2">
-                        <label for="department" class="form-label">Name of Department </label>
-                        <input type="text" id="department" name="department" class="form-control" placeholder="Enter department name here" />
+                    
+                    <div class="row">
+                        <div class="mb-2 col-md-6">
+                            <label for="faculty" class="form-label">Semester starts</label>
+                            <input type="date" id="sdate" name="begins" class="form-control" />
+                        </div>
+                        <div class="mb-2 col-md-6">
+                            <label for="faculty" class="form-label">Semester ends </label>
+                            <input type="date" id="edate" name="ends" class="form-control"/>
+                        </div>
                     </div>
+                  
+
                     <div class="form-floating mb-2">
-                        <textarea class="form-control" placeholder="Description here..." name="description" id="description" style="height: 100px">
+                        <textarea class="form-control" placeholder="Description here..." id="description" name="description" style="height: 100px">
                         </textarea>
                         <label for="descriptions">Description here...</label>
                     </div>
@@ -128,7 +143,6 @@
 
 
 <script>
-
     // Function to show loader
     function showLoader() { $('#loader').show(); }
     function hideLoader() { $('#loader').hide(); }
@@ -137,18 +151,20 @@
 
         var dataTable = "";
         var counter = 0;
+        var session_id = $('#session_id').val();
 
-        //GET FACULTY FROM DB AND FILL ROLE
+
+        //GET programmeS FROM DB AND FILL ROLE
         $.ajax({
-            url: '{{ route("fetch-faculties") }}',
+            url: '{{ route("fetch-semesters") }}',
             type: 'GET',
             dataType: 'json',
             success: function (data) {
-                var roleSelect = $('#faculty');
+                var roleSelect = $('#semester');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.faculties, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.faculty + '</option>');
+                $.each(data.semesters, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.semester + '</option>');
                 });
                 roleSelect.select2({ dropdownParent: roleSelect.parent() });
             },
@@ -156,13 +172,55 @@
                 console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
             }
         }); 
-        
+
+        // Set minimum date for sdate to the current date
+        var today = new Date().toISOString().split('T')[0];
+        $('#sdate').attr('min', today);
+
+
+        $('#sdate').change(function() {
+            var sdate = $('#sdate').val();
+
+            if (sdate) {
+                var startDate = new Date(sdate);
+                var endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + 4);
+                $('#edate').val(endDate.toISOString().split('T')[0]);
+                $('#edate').change();
+            }
+        });
+
+        // Validating the academic year
+        $('#sdate, #edate').change(function() {
+            var sdate = $('#sdate').val();
+            var edate = $('#edate').val();
+
+            if (sdate && edate) {
+                var startDate = new Date(sdate);
+                var endDate = new Date(edate);
+                var today = new Date();
+
+                // Check if the start date is in the past
+                if (startDate < today.setHours(0,0,0,0)) {
+                    $('#sdate, #edate').val('');
+                    Swal.fire({icon: 'error', title: 'Sorry Please', text: 'The start of the academic year semester cannot be in the past.'});
+                    return;
+                }
+
+                // Check if the end date is earlier than the start date
+                if (endDate < startDate) {
+                    $('#sdate, #edate').val('');
+                    Swal.fire({icon: 'error', title: 'Attention Please', text: 'Ending date cannot be earlier than starting date of the Academic semester'});
+                    return;
+                }
+            }
+        });
 
         //CALLING THE MODAL TO ADD NEW RECORD
         $('#add-new-button').click( function()
         {
             $('#description').text(null);
-            $('#modal-title').text('Adding New Record to ' + '{{ env('APP_ALIASE')}}');
+            $('#modal-title').text('Creating New Academic Semester to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
             $('#save-data').show('fade');
             $('#my-modal').addClass('modal-blur').modal('show');
@@ -177,35 +235,32 @@
             }
 
             let formData = $('#my-form').serialize();
+
             let buttonElement = $(this);
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('addDepartment') }}',
+                url: '{{ route('addSessionSemester') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function (response) {
-
                     counter = 0;
                     dataTable.ajax.reload();
                     $('#my-modal').modal('hide');
-
                     buttonElement.prop('disabled', false).text('Send Request').css('cursor', 'pointer');
-
                     if (response.status === 'success') {
                         showSweetAlert('success', 'Success!', response.message);
                     } else {
-                        showSweetAlert('error', 'Error!', response.message);
+                        showSweetAlert('error', 'Attention Please!', response.message);
                     }
                 },
                 error: function (xhr, status, error) {
                     buttonElement.prop('disabled', false).text('Send Request').css('cursor', 'pointer');
-
                     if (xhr.responseJSON && xhr.responseJSON.status === 'error') {
-                        showSweetAlert('error', 'Error!', xhr.responseJSON.message);
+                        showSweetAlert('error', 'Attention Please!', xhr.responseJSON.message);
                     } else {
                         showSweetAlert('error', 'Error!', 'Request Failed: ' + status + ', ' + error);
                     }
@@ -224,10 +279,10 @@
 
             let formData = $('#my-form').serialize();
             let buttonElement = $(this);
-            buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
+            buttonElement.html('<i class="fa fa-spinner fa-spin mx-1"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('updateDepartment') }}',
+                url: '{{ route('updateSessionSemester') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
@@ -262,11 +317,12 @@
 
         //VALIDATE FORM
         function validateForm() {
-            let faculty = $('#faculty').val();
-            let dept = $('#department').val();
+            let sdate= $('#sdate').val();
+            let edate= $('#edate').val();
+            let semester= $('#semester').val();
             let descriptions = $('#description').val();
 
-            return faculty && descriptions && dept;
+            return semester && edate && sdate && descriptions;
         }
 
         // Function to show SweetAlert message
@@ -277,15 +333,18 @@
         // Attach a click event handler to the edit button
         $('#example').on('click', '.edit-btn', function () {
             // Get the data attributes
-            let Id = $(this).data('id');
-            let title = $(this).data('department');
-            let faculty = $(this).data('faculty');
+            let id = $(this).data('id');
+            let semester = $(this).data('semester');
+            let session_start = $(this).data('session_start');
+            let session_end = $(this).data('session_end');
             let description = $(this).data('description');
+            let title = $(this).data('title');
 
             // Set the values in the input fields
-            $('#gottenId').val(Id);
-            $('#faculty').val(faculty).trigger('change'); 
-            $('#department').val(title); 
+            $('#gottenId').val(id);
+            $('#semester').val(semester).trigger('change'); 
+            $('#sdate').val(session_start); 
+            $('#edate').val(session_end); 
             $('#description').text(description);
             
             $('#modal-title').text('Modifying - ' + title);
@@ -311,7 +370,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '{{ route("destroyDepartment") }}',
+                        url: '{{ route("destroySessionSemester") }}',
                         type: 'POST',
                         data: { id: Id },
                         headers: {
@@ -343,9 +402,12 @@
         dataTable = $("#example").DataTable(
         {
             ajax: {
-                url: '{{ route('departments') }}',
+                url: '{{ route('session-semester') }}',
                 type: 'GET',
-                dataSrc: 'departments',
+                data: function(d) {
+                    return { keys: session_id};
+                },
+                dataSrc: 'semesters',
                 beforeSend: showLoader,
                 complete: hideLoader,
             },
@@ -353,7 +415,7 @@
                 {
                     data: null,
                     render: function (data, type, row) {
-                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.department + '"/>';
+                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.semester + '"/>';
                     },
                 },
                 {
@@ -362,14 +424,16 @@
                         return ++counter;
                     }
                 },
-                { data: 'faculty'},
-                { data: 'department'},
-                { data: 'description'},
+                { data: 'semester'},
+                { data: 'begins'},
+                { data: 'ends'},
+                { data: 'description', class: 'w-100'},
+                { data: 'status'},
                 {
                     data: null,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-faculty="' + data.faculty_id + '" data-department="' + data.department + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.department + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
+                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-title="' + data.semester + '" data-semester="' + data.semester_id + '" data-session_start="' + data.begins + '" data-session_end="' + data.ends + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
+                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.semester + '">Unmount</button>';
                     }
                 }
             ],
@@ -398,6 +462,7 @@
             }
         });
 
+
         //TO REFRESH THE Page
         $('#btnref').click( function(){
             dataTable.ajax.reload();
@@ -414,7 +479,7 @@
         $('#bulk-remove').on('click', function () {
             var checkedCheckboxes = $('.select-checkbox:checked');
             if (checkedCheckboxes.length > 0) {
-                let table='departments'
+                let table='session_semesters'
                 performBulkRemove(table);
             } else {
                 Swal.fire({
@@ -480,4 +545,5 @@
 </script>
     
 @endsection
+
 

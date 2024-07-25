@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('faculties', function (Blueprint $table) {
-            $table->bigIncrements('id')->startingValue(1300);
-            $table->string('faculty')->unique();
+        Schema::create('semesters', function (Blueprint $table) {
+            $table->bigIncrements('id')->startingValue(2500);
+            $table->string('semester')->unique();
             $table->text('description')->default('No Description');
             $table->string('status', 10)->default('Active');
             $table->timestamps();
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('faculties');
+        Schema::dropIfExists('semesters');
     }
 };

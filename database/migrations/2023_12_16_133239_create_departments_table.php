@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -13,16 +13,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('departments', function (Blueprint $table) {
-            $table->id();
-            $table->bigInteger('faculty_id')->unsigned();
+            $table->bigIncrements('id')->startingValue(6500);
+            $table->foreignId('faculty_id')->constrained()->onDelete('cascade');
             $table->string('department')->unique();
-            $table->string('description')->nullable();
+            $table->text('description')->default('No Description');
+            $table->string('status', 10)->default('Active');
             $table->timestamps();
-
-            $table->foreign('faculty_id')->references('id')->on('faculties')->onDelete('cascade');
+            $table->string('is_deleted', 3)->default('No');
         });
-
-        DB::statement('ALTER TABLE departments AUTO_INCREMENT = 6500');
     }
 
     /**

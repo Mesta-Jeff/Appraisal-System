@@ -1,11 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\AuthenticationController;
-use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AppraisalController;
+use App\Http\Controllers\AuthenticationController;
 
 
 Route::get('/', function () {
@@ -47,15 +47,49 @@ Route::post('/settings/faculties/update', [SettingsController::class, 'updateFac
 Route::post('/settings/faculties/destroy', [SettingsController::class, 'destroyFaculty'])->name('destroyFaculty');
 Route::get('/fetch-faculties', [SettingsController::class, 'fetch_faculties'])->name('fetch-faculties');
 
+Route::get('/settings/programme', [SettingsController::class, 'programmes'])->name('programmes');
+Route::post('/settings/programmes/add', [SettingsController::class, 'addProgramme'])->name('addProgramme');
+Route::post('/settings/programmes/update', [SettingsController::class, 'updateProgramme'])->name('updateProgramme');
+Route::post('/settings/programmes/destroy', [SettingsController::class, 'destroyProgramme'])->name('destroyProgramme');
+Route::get('/fetch-programmes', [SettingsController::class, 'fetchProgrammes'])->name('fetch-programmes');
+Route::get('/fetch-department-programmes', [SettingsController::class, 'fetchDepartmentProgrammes'])->name('fetch-department-programmes');
+
+Route::get('/settings/semester', [SettingsController::class, 'semesters'])->name('semester');
+Route::post('/settings/semesters/add', [SettingsController::class, 'addSemester'])->name('addSemester');
+Route::post('/settings/semesters/update', [SettingsController::class, 'updateSemester'])->name('updateSemester');
+Route::post('/settings/semesters/destroy', [SettingsController::class, 'destroySemester'])->name('destroySemester');
+Route::get('/fetch-semesters', [SettingsController::class, 'fetchSemesters'])->name('fetch-semesters');
+
+Route::get('/settings/sessions', [SettingsController::class, 'sessions'])->name('sessions');
+Route::post('/settings/sessions/add', [SettingsController::class, 'addSession'])->name('addSession');
+Route::post('/settings/sessions/update', [SettingsController::class, 'updateSession'])->name('updateSession');
+Route::post('/settings/sessions/destroy', [SettingsController::class, 'destroySession'])->name('destroySession');
+Route::get('/fetch-sessions', [SettingsController::class, 'fetchSessions'])->name('fetch-sessions');
+
+Route::get('/settings/session-semester', [SettingsController::class, 'sessionSemester'])->name('session-semester');
+Route::post('/settings/session-semester/add', [SettingsController::class, 'addSessionSemester'])->name('addSessionSemester');
+Route::post('/settings/session-semester/update', [SettingsController::class, 'updateSessionSemester'])->name('updateSessionSemester');
+Route::post('/settings/session-semester/destroy', [SettingsController::class, 'destroySessionSemester'])->name('destroySessionSemester');
+Route::get('/fetch-session-semesters', [SettingsController::class, 'fetchSessionSemesters'])->name('fetch-session-semesters');
+
+Route::get('/settings/session-course', [SettingsController::class, 'sessionCourse'])->name('session-course');
+Route::post('/settings/session-course/add', [SettingsController::class, 'addSessionCourse'])->name('addSessionCourse');
+Route::post('/settings/session-course/update', [SettingsController::class, 'updateSessionCourse'])->name('updateSessionCourse');
+Route::post('/settings/session-course/destroy', [SettingsController::class, 'destroySessionCourse'])->name('destroySessionCourse');
+Route::get('/fetch-session-courses', [SettingsController::class, 'fetchSessionCourses'])->name('fetch-session-courses');
+
 Route::get('/settings/courses', [SettingsController::class, 'courses'])->name('courses');
 Route::post('/settings/courses/add', [SettingsController::class, 'addCourse'])->name('addCourse');
 Route::post('/settings/courses/update', [SettingsController::class, 'updateCourse'])->name('updateCourse');
 Route::post('/settings/courses/destroy', [SettingsController::class, 'destroyCourse'])->name('destroyCourse');
+Route::get('/fetch-courses', [SettingsController::class, 'fetchCourses'])->name('fetch-courses');
+Route::get('/fetch-programme-courses', [SettingsController::class, 'fetchProgrammeCourses'])->name('fetch-programme-courses');
 
 Route::get('/settings/classes', [SettingsController::class, 'classes'])->name('classes');
 Route::post('/settings/classes/add', [SettingsController::class, 'addClass'])->name('addClass');
 Route::post('/settings/classes/update', [SettingsController::class, 'updateClass'])->name('updateClass');
 Route::post('/settings/classes/destroy', [SettingsController::class, 'destroyClass'])->name('destroyClass');
+Route::get('/fetch-levels', [SettingsController::class, 'fetchLevels'])->name('fetch-levels');
 
 
 Route::get('/settings/questions', [SettingsController::class, 'questions'])->name('questions');
@@ -74,13 +108,9 @@ Route::get('/appraise/students-been-appraised', [AppraisalController::class, 'st
 Route::get('/appraise/staff-been-appraised', [AppraisalController::class, 'staffBeenAppraised'])->name('staff-been-appraised');
 Route::get('/appraise/appraisal-statistics', [AppraisalController::class, 'appraisalStatistics'])->name('appraisal-statistics');
 Route::get('/appraise/lecturer-based-statistics', [AppraisalController::class, 'lecturerBasedStatistics'])->name('lecturer-based-statistics');
-
 Route::get('/appraise/department-based-statistics', [AppraisalController::class, 'departmentBasedStatistics'])->name('department-based-statistics');
-
 Route::get('/appraise/faculty-based-statistics', [AppraisalController::class, 'facultyBasedStatistics'])->name('faculty-based-statistics');
-
 Route::get('/appraise/list-of-appraised-staff', [AppraisalController::class, 'listOfAppraisedStaff'])->name('list-of-appraised-staff');
-
 Route::get('/appraise/list-of-appraised-students', [AppraisalController::class, 'listOfAppraisedStudents'])->name('list-of-appraised-students');
 
 
@@ -90,6 +120,11 @@ Route::get('/appraise/list-of-appraised-students', [AppraisalController::class, 
 
 Route::get('/settings/users', [UserController::class, 'usersAccount'])->name('users-account');
 Route::get('/settings/students', [UserController::class, 'Students'])->name('students');
+Route::post('/add/student/bulk', [UserController::class, 'StudentsAddBulk'])->name('students-add-bulk');
+Route::post('/students/edit-record', [UserController::class, 'updateStudents'])->name('students-editRecord');
+Route::post('/students/destroy', [UserController::class, 'destroyStudent'])->name('destroyStudent');
+Route::post('/students/promote', [UserController::class, 'promoteStudent'])->name('promoteStudent');
+
 Route::get('/settings/staff', [UserController::class, 'Staff'])->name('staff');
 
 

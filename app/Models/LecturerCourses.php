@@ -5,19 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Role extends Model
+class LecturerCourses extends Model
 {
     use HasFactory;
-
     protected $fillable = [
-        'role',
+        'session_course_id',
+        'lecturer_id',
         'description',
-        'hook',
-        'status',
+        'status'
     ];
 
     protected $hidden = [
-        'is_deleted',
         'updated_at',
+        'is_deleted'
     ];
 }

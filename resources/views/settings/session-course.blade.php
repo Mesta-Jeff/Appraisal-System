@@ -2,7 +2,7 @@
 
 @extends('layout.main')
 
-@section('title', 'Department')
+@section('title', 'Academic Year Course')
 
 @section('content')
 
@@ -32,12 +32,12 @@
                     <div class="row">
                         <div class="col-lg-6 col-sm-4 d-flex gap-2">
                             <h4 class="page-title">Current @yield('title')</h4>
-                            <button class="btn btn-danger" type="button" id="bulk-remove" style="display: none" > Remove</button>
+                            <button class="btn btn-danger" type="button" id="bulk-remove" style="display: none" > Unmount</button>
                         </div>
                         <div class="col-lg-6 col-sm-8">
                             <div class="d-flex gap-2 justify-content-lg-end mt-3 mt-lg-0">
                                 <button type="button" id="btnref" class="btn btn-secondary"><i class="mdi mdi-atom-variant spin"></i> Reload</button>
-                                <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Add New</button>
+                                <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Mount New</button>
                             </div>
                         </div>
                     </div>
@@ -59,10 +59,12 @@
                             <thead>
                                 <tr class="text-uppercase">
                                     <th><input type="checkbox" id="selectAllCheckboxes"/></th>
-                                    <th>#</th>
-                                    <th>Faculty</th>
-                                    <th>Department</th>
-                                    <th>Description</th>
+                                    <th>Programme</th>
+                                    <th>Level</th>
+                                    <th>Course</th>
+                                    <th>Course Code</th>
+                                    <th>Semester</th>
+                                    <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -95,16 +97,36 @@
             <div class="modal-body">
                 <form class="px-3" id="my-form">
                     <input type="hidden" id="gottenId" name="id">
-                    <div class="mb-2">
-                        <label for="username" class="form-label">Available Faculties </label>
-                        <select id="faculty" name="faculty" class="select2 form-control" data-toggle="select2">
+                    <div class="mb-1">
+                        <label for="username" class="form-label">Select Academic Year</label>
+                        <select id="sessions" name="sessions" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
-                    <div class="mb-2">
-                        <label for="department" class="form-label">Name of Department </label>
-                        <input type="text" id="department" name="department" class="form-control" placeholder="Enter department name here" />
+                    <div class="mb-1">
+                        <label for="username" class="form-label">What semester...?</label>
+                        <select id="semester" name="semester" class="select2 form-control" data-toggle="select2">
+                            <option selected disabled>Choose...</option>
+                        </select>
                     </div>
+                    <div class="mb-1">
+                        <label for="username" class="form-label">Which level...?</label>
+                        <select id="level" name="level" class="select2 form-control" data-toggle="select2">
+                            <option selected disabled>Choose...</option>
+                        </select>
+                    </div>
+                    <div class="mb-1">
+                        <label for="username" class="form-label">Which programme are you mounting to...?</label>
+                        <select id="programme" name="programme" class="select2 form-control" data-toggle="select2">
+                            <option selected disabled>Choose...</option>
+                        </select>
+                    </div>
+                    <div class="mb-1">
+                        <label for="username" class="form-label">Select all Courses you want to mount</label>
+                        <select id="course" name="course[]" class="select2 form-control select2-multiple" multiple="multiple" data-placeholder="Choose ..." data-toggle="select2"></select>
+                    </div>
+                   
+                   
                     <div class="form-floating mb-2">
                         <textarea class="form-control" placeholder="Description here..." name="description" id="description" style="height: 100px">
                         </textarea>
@@ -138,17 +160,17 @@
         var dataTable = "";
         var counter = 0;
 
-        //GET FACULTY FROM DB AND FILL ROLE
+        //GET SESSIONS
         $.ajax({
-            url: '{{ route("fetch-faculties") }}',
+            url: '{{ route("fetch-sessions") }}',
             type: 'GET',
             dataType: 'json',
             success: function (data) {
-                var roleSelect = $('#faculty');
+                var roleSelect = $('#sessions');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.faculties, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.faculty + '</option>');
+                $.each(data.sessions, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.name + '</option>');
                 });
                 roleSelect.select2({ dropdownParent: roleSelect.parent() });
             },
@@ -156,6 +178,89 @@
                 console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
             }
         }); 
+
+        // Gett semesters
+        $('#sessions').on('change', function(){
+            session_id = $(this).val();
+            $.ajax({
+                url: '{{ route("fetch-session-semesters") }}',
+                type: 'GET',
+                data: { session_id: session_id },
+                dataType: 'json',
+                success: function (data) {
+                    var roleSelect = $('#semester');
+                    roleSelect.empty();
+                    roleSelect.append('<option value="" selected disabled>Choose...</option>');
+                    $.each(data['semesters'], function (key, value) {
+                        roleSelect.append('<option value="' + value.id + '">' + value.semester + '</option>');
+                    });
+                    $('#semester').select2({ dropdownParent: $('#semester').parent() });
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+                }
+            }); 
+        });
+
+        // GET LEVELS
+        $.ajax({
+            url: '{{ route("fetch-levels") }}',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var roleSelect = $('#level');
+                roleSelect.empty();
+                roleSelect.append('<option value="" selected disabled>Choose...</option>');
+                $.each(data.levels, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.class + '</option>');
+                });
+                roleSelect.select2({ dropdownParent: roleSelect.parent() });
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+            }
+        }); 
+
+        // GET PROGRAMMES
+        $.ajax({
+            url: '{{ route("fetch-programmes") }}',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var roleSelect = $('#programme');
+                roleSelect.empty();
+                roleSelect.append('<option value="" selected disabled>Choose...</option>');
+                $.each(data.programmes, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.programme + '</option>');
+                });
+                roleSelect.select2({ dropdownParent: roleSelect.parent() });
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+            }
+        }); 
+
+        // GET COURSES
+        $('#programme').on('change', function(){
+            programme_id = $(this).val();
+            $.ajax({
+                url: '{{ route("fetch-programme-courses") }}',
+                type: 'GET',
+                data: { programme_id: programme_id },
+                dataType: 'json',
+                success: function (data) {
+                    var roleSelect = $('#course');
+                    roleSelect.empty();
+                    $.each(data['courses'], function (key, value) {
+                        roleSelect.append('<option value="' + value.id + '">' + value.course + '</option>');
+                    });
+                    roleSelect.select2({ dropdownParent: roleSelect.parent() });
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+                }
+            }); 
+        });
         
 
         //CALLING THE MODAL TO ADD NEW RECORD
@@ -172,23 +277,24 @@
         $('#save-data').on('click', function () {
             // Check if form inputs are not null
             if (!validateForm()) {
-                showSweetAlert('error', 'Error!', 'Please all fields are rquired and cant\t be blank....');
+                showSweetAlert('error', 'Error!', 'Please all fields are required and can\'t be blank....');
                 return;
             }
 
-            let formData = $('#my-form').serialize();
+            // Serialize the form data
+            let formData = $('#my-form').serializeArray();
+
             let buttonElement = $(this);
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('addDepartment') }}',
+                url: '{{ route('addSessionCourse') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function (response) {
-
                     counter = 0;
                     dataTable.ajax.reload();
                     $('#my-modal').modal('hide');
@@ -210,9 +316,9 @@
                         showSweetAlert('error', 'Error!', 'Request Failed: ' + status + ', ' + error);
                     }
                 }
-
             });
         });
+
 
         //SENDING DATA TO THE API FOR EDTING
         $('#edit-data').on('click', function () {
@@ -262,11 +368,12 @@
 
         //VALIDATE FORM
         function validateForm() {
-            let faculty = $('#faculty').val();
-            let dept = $('#department').val();
-            let descriptions = $('#description').val();
+            let programme = $('#programme').val();
+            let level = $('#level').val();
+            let course = $('#course').val();
+            let semester = $('#semester').val();
 
-            return faculty && descriptions && dept;
+            return programme && level && course && semester;
         }
 
         // Function to show SweetAlert message
@@ -339,13 +446,21 @@
             });
         });
 
+        // Helper function to truncate text
+        function truncateText(text, maxLength) {
+            if (text.length > maxLength) {
+                return text.substring(0, maxLength) + '...';
+            }
+            return text;
+        }
+
         //DATA TABLE SEETING UP
         dataTable = $("#example").DataTable(
         {
             ajax: {
-                url: '{{ route('departments') }}',
+                url: '{{ route('session-course') }}',
                 type: 'GET',
-                dataSrc: 'departments',
+                dataSrc: 'sessionCourses',
                 beforeSend: showLoader,
                 complete: hideLoader,
             },
@@ -357,21 +472,33 @@
                     },
                 },
                 {
-                    data: null,
+                    data: 'programme',
                     render: function(data, type, row) {
-                        return ++counter;
+                        return truncateText(data, 20);
                     }
                 },
-                { data: 'faculty'},
-                { data: 'department'},
-                { data: 'description'},
+                { data: 'class'},
+                {
+                    data: 'course',
+                    render: function(data, type, row) {
+                        return truncateText(data, 50);
+                    }
+                },
+                { data: 'course_code'},
+                { data: 'semester'},
+                { data: 'status'},
                 {
                     data: null,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-faculty="' + data.faculty_id + '" data-department="' + data.department + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.department + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
+                        if (data.status === 'Unmounted') {
+                            return '<button class="btn btn-info btn-sm mount-btn" data-id="' + data.id + '" data-title="' + data.department + '">Mount</button>';
+                        } else {
+                            return '<button class="btn btn-danger btn-sm unmount-btn" data-id="' + data.id + '" data-title="' + data.department + '">Unmount</button>';
+                        }
                     }
                 }
+
+                
             ],
             drawCallback: function() {
                 counter = 0;
@@ -414,7 +541,7 @@
         $('#bulk-remove').on('click', function () {
             var checkedCheckboxes = $('.select-checkbox:checked');
             if (checkedCheckboxes.length > 0) {
-                let table='departments'
+                let table='session_courses'
                 performBulkRemove(table);
             } else {
                 Swal.fire({

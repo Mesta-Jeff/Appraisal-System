@@ -2,7 +2,7 @@
 
 @extends('layout.main')
 
-@section('title', 'Department')
+@section('title', 'Programme')
 
 @section('content')
 
@@ -60,8 +60,9 @@
                                 <tr class="text-uppercase">
                                     <th><input type="checkbox" id="selectAllCheckboxes"/></th>
                                     <th>#</th>
-                                    <th>Faculty</th>
                                     <th>Department</th>
+                                    <th>Prgramme</th>
+                                    <th>Duration</th>
                                     <th>Description</th>
                                     <th>Action</th>
                                 </tr>
@@ -96,14 +97,40 @@
                 <form class="px-3" id="my-form">
                     <input type="hidden" id="gottenId" name="id">
                     <div class="mb-2">
-                        <label for="username" class="form-label">Available Faculties </label>
-                        <select id="faculty" name="faculty" class="select2 form-control" data-toggle="select2">
+                        <label for="username" class="form-label">Available Departments </label>
+                        <select id="department" name="department" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label for="department" class="form-label">Name of Department </label>
-                        <input type="text" id="department" name="department" class="form-control" placeholder="Enter department name here" />
+                        <label for="department" class="form-label">Name of Programme </label>
+                        <input type="text" id="programme" name="programme" class="form-control" placeholder="eg. Bsc Mathematics Education" />
+                    </div>
+                    <div class="mb-2">
+                        <label for="username" class="form-label">Programme Duration</label>
+                        <select id="duration" name="duration" class="select2 form-control" data-toggle="select2">
+                            <option selected disabled>Choose...</option>
+                            <option value="6 Months">6 Months</option>
+                            <option value="1 Year">1 Year</option>
+                            <option value="1.5 Years">One and a half years</option>
+                            <option value="2 Years">2 Years</option>
+                            <option value="2.5 Years">Two and a half years</option>
+                            <option value="3 Years">3 Years</option>
+                            <option value="3.5 Years">Three and a half years</option>
+                            <option value="4 Years">4 Years</option>
+                            <option value="4.5 Years">Four and a half years</option>
+                            <option value="5 Years">5 Years</option>
+                            <option value="5.5 Years">Five and a half years</option>
+                            <option value="6 Years">6 Years</option>
+                            <option value="6.5 Years">Six and a half years</option>
+                            <option value="7 Years">7 Years</option>
+                            <option value="7.5 Years">Seven and a half years</option>
+                            <option value="8 Years">8 Years</option>
+                            <option value="8.5 Years">Eight and a half years</option>
+                            <option value="9 Years">9 Years</option>
+                            <option value="9.5 Years">Nine and a half years</option>
+                            <option value="10 Years">10 Years</option>
+                        </select>                        
                     </div>
                     <div class="form-floating mb-2">
                         <textarea class="form-control" placeholder="Description here..." name="description" id="description" style="height: 100px">
@@ -138,17 +165,17 @@
         var dataTable = "";
         var counter = 0;
 
-        //GET FACULTY FROM DB AND FILL ROLE
+        //GET DEPARTMETN FROM DB AND FILL ROLE
         $.ajax({
-            url: '{{ route("fetch-faculties") }}',
+            url: '{{ route("fetch-departments") }}',
             type: 'GET',
             dataType: 'json',
             success: function (data) {
-                var roleSelect = $('#faculty');
+                var roleSelect = $('#department');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.faculties, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.faculty + '</option>');
+                $.each(data.departments, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.department+ '</option>');
                 });
                 roleSelect.select2({ dropdownParent: roleSelect.parent() });
             },
@@ -181,7 +208,7 @@
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('addDepartment') }}',
+                url: '{{ route('addProgramme') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
@@ -227,7 +254,7 @@
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('updateDepartment') }}',
+                url: '{{ route('updateProgramme') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
@@ -262,11 +289,11 @@
 
         //VALIDATE FORM
         function validateForm() {
-            let faculty = $('#faculty').val();
-            let dept = $('#department').val();
+            let programme = $('#department').val();
+            let dept = $('#programme').val();
             let descriptions = $('#description').val();
 
-            return faculty && descriptions && dept;
+            return programme && descriptions && dept;
         }
 
         // Function to show SweetAlert message
@@ -277,16 +304,18 @@
         // Attach a click event handler to the edit button
         $('#example').on('click', '.edit-btn', function () {
             // Get the data attributes
-            let Id = $(this).data('id');
-            let title = $(this).data('department');
-            let faculty = $(this).data('faculty');
+            let id = $(this).data('id');
+            let title = $(this).data('programme');
+            let department = $(this).data('department');
             let description = $(this).data('description');
+            let duration = $(this).data('duration');
 
             // Set the values in the input fields
-            $('#gottenId').val(Id);
-            $('#faculty').val(faculty).trigger('change'); 
-            $('#department').val(title); 
+            $('#gottenId').val(id);
+            $('#department').val(department).trigger('change'); 
+            $('#programme').val(title); 
             $('#description').text(description);
+            $('#duration').val(duration).trigger('change');
             
             $('#modal-title').text('Modifying - ' + title);
             $('#save-data').hide('fade');
@@ -311,7 +340,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '{{ route("destroyDepartment") }}',
+                        url: '{{ route("destroyProgramme") }}',
                         type: 'POST',
                         data: { id: Id },
                         headers: {
@@ -343,9 +372,9 @@
         dataTable = $("#example").DataTable(
         {
             ajax: {
-                url: '{{ route('departments') }}',
+                url: '{{ route('programmes') }}',
                 type: 'GET',
-                dataSrc: 'departments',
+                dataSrc: 'programmes',
                 beforeSend: showLoader,
                 complete: hideLoader,
             },
@@ -353,7 +382,7 @@
                 {
                     data: null,
                     render: function (data, type, row) {
-                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.department + '"/>';
+                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.programme + '"/>';
                     },
                 },
                 {
@@ -362,14 +391,15 @@
                         return ++counter;
                     }
                 },
-                { data: 'faculty'},
                 { data: 'department'},
+                { data: 'programme'},
+                { data: 'duration'},
                 { data: 'description'},
                 {
                     data: null,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-faculty="' + data.faculty_id + '" data-department="' + data.department + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.department + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
+                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-department="' + data.department_id + '" data-programme="' + data.programme + '" data-duration="' + data.duration + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
+                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.programme + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
                     }
                 }
             ],
@@ -414,7 +444,7 @@
         $('#bulk-remove').on('click', function () {
             var checkedCheckboxes = $('.select-checkbox:checked');
             if (checkedCheckboxes.length > 0) {
-                let table='departments'
+                let table='programmes'
                 performBulkRemove(table);
             } else {
                 Swal.fire({

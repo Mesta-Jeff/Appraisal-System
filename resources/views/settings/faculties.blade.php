@@ -17,7 +17,7 @@
                 
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">NES</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">{{ env('APP_ALIASE')}}</a></li>
                         <li class="breadcrumb-item"><a href="javascript: void(0);">System Settings</a></li>
                         <li class="breadcrumb-item active">@yield('title')</li>
                     </ol>
@@ -138,7 +138,7 @@
         $('#add-new-button').click( function()
         {
             $('#description').text(null);
-            $('#modal-title').text('ADDING NEW RECORD TO EAS');
+            $('#modal-title').text('Adding New Record to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
             $('#save-data').show('fade');
             $('#my-modal').addClass('modal-blur').modal('show');

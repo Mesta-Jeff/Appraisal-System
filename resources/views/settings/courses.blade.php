@@ -17,7 +17,7 @@
                 
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">NES</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">{{ env('APP_ALIASE')}}</a></li>
                         <li class="breadcrumb-item"><a href="javascript: void(0);">System Settings</a></li>
                         <li class="breadcrumb-item active">@yield('title')</li>
                     </ol>
@@ -61,11 +61,10 @@
                             <thead>
                                 <tr class="text-uppercase">
                                     <th><input type="checkbox" id="selectAllCheckboxes"/></th>
-                                    <th>#</th>
-                                    <th>Course</th>
+                                    <th>Course Title</th>
                                     <th>Code</th>
                                     <th>Course Type</th>
-                                    <th>Department</th>
+                                    <th>Course Owner</th>
                                     <th>Description</th>
                                     <th>Action</th>
                                 </tr>
@@ -83,7 +82,7 @@
 
 
 <!-- Modal -->
-<div class="modal hide fade" id="my-modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+<div class="modal modal-blur hide fade" id="my-modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -113,17 +112,22 @@
                         <label for="types" class="form-label">Course Type</label>
                         <select id="course-type" name="course-type" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
-                            <option value="Educational">Educational Course</option>
+                            <option value="General">General Course</option>
                             <option value="Departmental">Departmental Course</option>
+                            <option value="Faculty">Faculty Based Course</option>
                             <option value="Liberal">Liberal Course</option>
                         </select>
                     </div>
 
-                    <div class="mb-1">
-                        <label for="types" class="form-label">Related Department</label>
-                        <select id="department" name="department" class="select2 form-control" data-toggle="select2">
+                    <div class="mb-1" id="accessors-1">
+                        <label for="types" class="form-label">Programme owning this course default</label>
+                        <select id="programme" name="programme" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
                         </select>
+                    </div>
+                    <div class="mb-1" id="accessors-2" style="display: none">
+                        <label for="types" class="form-label">Select Programmes that will offer this course</label>
+                        <select id="programmes" name="programmes" class="select2 form-control select2-multiple" multiple="multiple" data-placeholder="Choose ..." data-toggle="select2"></select>
                     </div>
 
                     <div class="form-floating mb-2">
@@ -161,33 +165,64 @@
         var dataTable = "";
         var counter = 0;
 
-        //GET DEPARTMENTS FROM DB AND FILL ROLE
+        // Helper function to truncate text
+        function truncateText(text, maxLength) {
+            if (text.length > maxLength) {
+                return text.substring(0, maxLength) + '...';
+            }
+            return text;
+        }
+
+        // function to reset form
+        function resetting(){
+            $('#my-form')[0].reset();
+            $('#course-type, #programme').val('').trigger('change');
+            $('#programmes').val('').trigger('change');
+            dataTable.ajax.reload();
+        }
+
+        //GET programmeS FROM DB AND FILL ROLE
         $.ajax({
-            url: '{{ route("fetch-departments") }}',
+            url: '{{ route("fetch-programmes") }}',
             type: 'GET',
             dataType: 'json',
             success: function (data) {
-                var roleSelect = $('#department');
+                var roleSelect = $('#programme');
+                var roleSelect2 = $('#programmes');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.departments, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.department + '</option>');
+                $.each(data.programmes, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.programme + '</option>');
+                    roleSelect2.append('<option value="' + value.id + '">' + value.programme + '</option>');
                 });
                 roleSelect.select2({ dropdownParent: roleSelect.parent() });
+                roleSelect2.select2({ dropdownParent: roleSelect2.parent() });
             },
             error: function (xhr, textStatus, errorThrown) {
                 console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
             }
         }); 
 
+        // Course type checking
+        $('#course-type').on('change', function(){
+            if($(this).val() == 'Faculty'){
+                $('#accessors-2').show('fade');
+                // $('#accessors-1').hide('fade');
+            }else{
+                $('#accessors-2').hide('fade');
+                $('#accessors-1').show('fade');
+            }
+        })
+
         //CALLING THE MODAL TO ADD NEW RECORD
         $('#add-new-button').click( function()
         {
+            resetting();
             $('#description').text(null);
-            $('#modal-title').text('ADDING NEW RECORD TO EAS');
+            $('#modal-title').text('Creating Course to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
             $('#save-data').show('fade');
-            $('#my-modal').addClass('modal-blur').modal('show');
+            $('#my-modal').modal('show');
         })
 
 
@@ -195,13 +230,21 @@
         $('#save-data').on('click', function () {
             // Check if form inputs are not null
             if (!validateForm()) {
-                showSweetAlert('error', 'Error!', 'Please all fields are rquired and cant\t be blank....');
+                showSweetAlert('error', 'Error!', 'All fields are required and cannot be blank.');
                 return;
             }
 
             let formData = $('#my-form').serialize();
+            let courseType = $('#course-type').val();
+            if (courseType === 'Faculty') {
+                let selectedProgrammes = $('#programmes').val();
+                if (selectedProgrammes) {
+                    formData += '&accessors=' + encodeURIComponent(selectedProgrammes.join(','));
+                }
+            }
+
             let buttonElement = $(this);
-            buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
+            buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait...').attr('disabled', true);
 
             $.ajax({
                 url: '{{ route('addCourse') }}',
@@ -211,21 +254,20 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function (response) {
-
-                    counter = 0;
-                    dataTable.ajax.reload();
-                    $('#my-modal').modal('hide');
-
-                    buttonElement.prop('disabled', false).text('Send Request').css('cursor', 'pointer');
+                    
+                    buttonElement.prop('disabled', false).html('Send Request').css('cursor', 'pointer');
 
                     if (response.status === 'success') {
                         showSweetAlert('success', 'Success!', response.message);
+                        resetting();
+                        $('#my-modal').modal('hide');
+
                     } else {
                         showSweetAlert('error', 'Error!', response.message);
                     }
                 },
                 error: function (xhr, status, error) {
-                    buttonElement.prop('disabled', false).text('Send Request').css('cursor', 'pointer');
+                    buttonElement.prop('disabled', false).html('Send Request').css('cursor', 'pointer');
 
                     if (xhr.responseJSON && xhr.responseJSON.status === 'error') {
                         showSweetAlert('error', 'Error!', xhr.responseJSON.message);
@@ -233,9 +275,9 @@
                         showSweetAlert('error', 'Error!', 'Request Failed: ' + status + ', ' + error);
                     }
                 }
-
             });
         });
+
 
         //SENDING DATA TO THE API FOR EDTING
         $('#edit-data').on('click', function () {
@@ -246,8 +288,16 @@
             }
 
             let formData = $('#my-form').serialize();
+            let courseType = $('#course-type').val();
+            if (courseType === 'Faculty') {
+                let selectedProgrammes = $('#programmes').val();
+                if (selectedProgrammes) {
+                    formData += '&accessors=' + encodeURIComponent(selectedProgrammes.join(','));
+                }
+            }
+
             let buttonElement = $(this);
-            buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
+            buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait...').attr('disabled', true);
 
             $.ajax({
                 url: '{{ route('updateCourse') }}',
@@ -257,15 +307,12 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function (response) {
-
-                    counter = 0;
-                    dataTable.ajax.reload();
-                    
-                    $('#my-modal').modal('hide');
                     buttonElement.prop('disabled', false).text('Send Request').css('cursor', 'pointer');
 
                     if (response.status === 'success') {
                         showSweetAlert('success', 'Success!', response.message);
+                        resetting();
+                        $('#my-modal').modal('hide');
                     } else {
                         showSweetAlert('error', 'Error!', response.message);
                     }
@@ -289,8 +336,7 @@
             let ctype = $('#course-type').val();
             let ccode = $('#course-code').val();
             let des = $('#description').val();
-            let dept = $('#department').val();
-            return dept && course && ctype && ccode && des;
+            return course && ctype && ccode && des;
         }
 
         // Function to show SweetAlert message
@@ -298,22 +344,80 @@
             Swal.fire({ icon: icon, title: title, text: text, });
         }
 
+        // Attach a click event handler to the view accessors
+        $('#example').on('click', '.view-btn', function () {
+            // Get the data attributes
+            let accessors = $(this).data('accessors');
+            let accessorsArray = accessors.split(',');
+
+            $.ajax({
+                url: '{{ route("fetch-programmes") }}',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    let htmls = '';
+
+                    // Iterate through the fetched programmes and build HTML for matching accessors
+                    $.each(data.programmes, function (key, value) {
+                        if (accessorsArray.includes(value.id.toString())) {
+                            htmls += `
+                            <hr style="margin-top: -5px; margin-bottom: 5px;"/>
+                            <div class="d-flex align-items-left">
+                                <div class="notify-icon text-primary" style="margin-bottom: 20px; margin-right: 10px;">
+                                    <i class="mdi mdi-school"></i>
+                                </div>
+                                <p class="notify-details" style="font-size: 13px;">${value.programme}</p>
+                            </div>`;
+                        }
+                    });
+
+                    if (htmls === '') {  htmls = '<p>No programs found for the selected accessors.</p>'; }
+
+                    Swal.fire({
+                        title: 'List of Progammes Taking This Course',
+                        html: htmls,
+                        confirmButtonColor: '#3BAFDA',
+                        confirmButtonText: 'Ok'
+                    });
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+                }
+            });
+        });
+
+
         // Attach a click event handler to the edit button
         $('#example').on('click', '.edit-btn', function () {
             // Get the data attributes
             let Id = $(this).data('id');
             let title = $(this).data('course');
-            let department = $(this).data('department');
+            let code = $(this).data('code');
+            let coursetype = $(this).data('course-type');
+            let accessors = $(this).data('accessors');
+            let programme = $(this).data('programme');
+            let des = $(this).data('description');
 
             // Set the values in the input fields
             $('#gottenId').val(Id);
-            $('#department').val(department).trigger('change'); 
+            $('#description').text(des);
+            $('#programme').val(programme).trigger('change'); 
             $('#course').val(title).trigger('change');
+            $('#course-code').val(code);
+            $('#course-type').val(coursetype).trigger('change');
+
+            if (coursetype === 'Faculty' && accessors) {
+                let accessorsArray = accessors.split(',');
+                $('#programmes').val(accessorsArray).trigger('change');
+                $('#accessors-2').show('fade');
+            } else {
+                $('#programmes').val('').trigger('change');
+            }
             
             $('#modal-title').text('Modifying - ' + title);
             $('#save-data').hide('fade');
             $('#edit-data').show('fade');
-            $('#my-modal').addClass('modal-blur').modal('show');
+            $('#my-modal').modal('show');
         });
 
         //DELETE THE DATA
@@ -378,24 +482,46 @@
                         return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.course + '"/>';
                     },
                 },
-                {
-                    data: null,
-                    render: function(data, type, row) {
-                        return ++counter;
-                    }
-                },
                 { data: 'course'},
                 { data: 'course_code'},
                 { data: 'course_type'},
-                { data: 'department'},
-                { data: 'description'},
+                {
+                    data: 'programme',
+                    render: function(data, type, row) {
+                        return truncateText(data, 20);
+                    }
+                },
+                {
+                    data: 'description',
+                    render: function(data, type, row) {
+                        return truncateText(data, 20);
+                    }
+                },
                 {
                     data: null,
                     render: function(data, type, row) {
-                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-department="' + data.department_id + '" data-course="' + data.course + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.course + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
+                        let viewAccessorsItem = '';
+                        if (data.course_type === 'Faculty') {
+                            viewAccessorsItem = `<a class="dropdown-item view-btn" href="javascript:void(0);" data-accessors="${data.accessors}">View Accessors</a>`;
+                        }
+
+                        return `
+                            <div class="btn-group me-1">
+                                <button type="button" class="btn btn-sm btn-light dropdown-toggle waves-effect" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="mdi mdi-dots-vertical font-18"></i> More
+                                    <i class="mdi mdi-chevron-down"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item text-info edit-btn" href="javascript:void(0);" data-id="${data.id}" data-code="${data.course_code}" data-course-type="${data.course_type}" data-accessors="${data.accessors}" data-programme="${data.programme_id}" data-course="${data.course}" data-description="${data.description}">Modify Course</a>
+                                    <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);" data-id="${data.id}" data-title="${data.course}">Release Course</a>
+                                    ${viewAccessorsItem}
+                                    <a class="dropdown-item" href="javascript:void(0);">Add Task</a>
+                                </div>
+                            </div>`;
                     }
                 }
+
+
             ],
             drawCallback: function() {
                 counter = 0;
@@ -482,7 +608,7 @@
                             } else {
                                 showSweetAlert('error', 'Error!', response.message);
                             }
-                            counter = 0;
+        
                             dataTable.ajax.reload();
                             $('#bulk-remove').fadeOut();
                         },

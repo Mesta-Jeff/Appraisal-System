@@ -2,13 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Role;
 use App\Models\Course;
 use App\Models\Classes;
 use App\Models\Faculty;
+use App\Models\Semester;
+use App\Models\Sessions;
+use App\Models\Programme;
 use App\Models\Department;
 use App\Models\Permission;
 use Illuminate\Http\Request;
+use App\Models\SessionCourses;
+use App\Models\SessionSemester;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +23,7 @@ class SettingsController extends Controller
 {
 
     //todo: BULK ACTION
-    public function bulk_destroy(Request $request)
+    public function bulk_destroys(Request $request)
     {
         if ($request->ajax()) {
             try {
@@ -38,6 +44,24 @@ class SettingsController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
 
+    public function bulk_destroy(Request $request)
+    {
+        if ($request->ajax()) {
+            try {
+                $ids = $request->input('id');
+                $table = $request->input('table');
+
+                // Update the is_deleted column to 'Yes' for the specified IDs
+                DB::table($table)->whereIn('id', $ids)->update(['is_deleted' => 'Yes']);
+
+                return response()->json(['status' => 'success', 'message' => 'Records marked as deleted successfully']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'An error occurred while marking records as deleted.'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
 
 
 
@@ -45,14 +69,14 @@ class SettingsController extends Controller
     public function roles(Request $request)
     {
         if ($request->ajax()) {
-            $roles = Role::all();
+            $roles = Role::orderBy('id', 'desc')->where('is_deleted','No')->get();
             return response()->json(['status' => 'success', 'roles' => $roles]);
         }
         return view('settings.roles');
     }
     public function fetch_roles(Request $request)
     {
-        $sortroles = DB::table('roles')->orderBy('role', 'asc')->select('role', 'id')->get();
+        $sortroles = DB::table('roles')->where('is_deleted', 'No')->orderBy('role', 'asc')->select('role', 'id')->get();
         return response()->json(['sortroles' => $sortroles]);
     }
     public function addRole(Request $request)
@@ -71,7 +95,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Check if the role already exists
@@ -113,7 +137,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
             // Update the record with validated fields
             $updated = Role::where('id', $validator->validated()['id'])->update([
@@ -123,7 +147,7 @@ class SettingsController extends Controller
             ]);
 
             if ($updated) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data updated']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
             }
 
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
@@ -132,30 +156,24 @@ class SettingsController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
+
+    
     public function destroyRole(Request $request)
     {
         if ($request->ajax()) {
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:roles,id',
-            ]);
-    
+            $request->validate(['id' => 'required|exists:roles,id',]);
+
             try {
-                // Find the role by id and delete it
-                $role = Role::find($validator->validated()['id']);
-                $role->delete();
-    
+                Role::where('id', $request->id)->update(['is_deleted' => 'Yes']);
                 return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
             } catch (\Exception $e) {
                 Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
             }
         }
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
     // ======================================
-
-
 
 
 
@@ -166,6 +184,7 @@ class SettingsController extends Controller
             $permissions = Permission::join('roles as r', 'r.id', '=', 'p.role_id')
                 ->select('p.id', 'p.role_id', 'r.role', 'p.permission', 'p.permission_key', 'p.description', 'p.hook')
                 ->from('permissions as p')
+                ->where('p.is_deleted', 'No')
                 ->orderBy('p.id', 'desc')
                 ->get();
             return response()->json(['status' => 'success', 'permissions' => $permissions]);
@@ -174,7 +193,7 @@ class SettingsController extends Controller
     }
     public function fetch_permissions(Request $request)
     {
-        $permissions = DB::table('permissions')->orderBy('permission', 'asc')->select('permission', 'permission_key')->get();
+        $permissions = DB::table('permissions')->where('is_deleted', 'No')->orderBy('permission', 'asc')->select('permission', 'permission_key')->get();
         return response()->json(['permissions' => $permissions]);
     }
     public function addPermission(Request $request)
@@ -195,7 +214,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Check if the record already exists
@@ -241,7 +260,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Update the record with validated fields
@@ -254,7 +273,7 @@ class SettingsController extends Controller
             ]);
 
             if ($updated) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data updated']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
             }
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
         } catch (\Exception $e) {
@@ -265,26 +284,18 @@ class SettingsController extends Controller
     public function destroyPermission(Request $request)
     {
         if ($request->ajax()) {
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:permissions,id',
-            ]);
-    
+            $request->validate(['id' => 'required|exists:permissions,id',]);
+
             try {
-                $permission = Permission::find($validator->validated()['id']);
-                $permission->delete();
-    
+                Permission::where('id', $request->id)->update(['is_deleted' => 'Yes']);
                 return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
             } catch (\Exception $e) {
                 Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
             }
         }
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
-
-
-
 
 
     //TODO: ALL ABOUT DEPARTMENT
@@ -295,6 +306,7 @@ class SettingsController extends Controller
                 ->select('d.id', 'd.faculty_id', 'f.faculty', 'd.department', 'd.description')
                 ->from('departments as d')
                 ->orderBy('d.id', 'desc')
+                ->where('d.is_deleted', 'No')
                 ->get();
             return response()->json(['status' => 'success', 'departments' => $departments]);
         }
@@ -302,7 +314,7 @@ class SettingsController extends Controller
     }
     public function fetch_departments(Request $request)
     {
-        $departments = DB::table('departments')->orderBy('department', 'asc')->select('department', 'id')->get();
+        $departments = DB::table('departments')->where('is_deleted', 'No')->orderBy('department', 'asc')->select('department', 'id')->get();
         return response()->json(['departments' => $departments]);
     }
     public function addDepartment(Request $request)
@@ -321,7 +333,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Check if already exists
@@ -363,7 +375,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
             // Update the record with validated fields
             $updated = Department::where('id', $validator->validated()['id'])->update([
@@ -373,7 +385,7 @@ class SettingsController extends Controller
             ]);
 
             if ($updated) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data updated']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
             }
 
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
@@ -385,25 +397,612 @@ class SettingsController extends Controller
     public function destroyDepartment(Request $request)
     {
         if ($request->ajax()) {
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:departments,id',
-            ]);
-    
+            $request->validate(['id' => 'required|exists:departments,id',]);
+
             try {
-                // Find by id and delete it
-                $department = Department::find($validator->validated()['id']);
-                $department->delete();
-    
+                Department::where('id', $request->id)->update(['is_deleted' => 'Yes']);
                 return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
             } catch (\Exception $e) {
                 Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
             }
         }
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
 
+    //TODO: PROGRAMMES ACTIONS
+    public function programmes(Request $request)
+    {
+        if ($request->ajax()) {
+            $programmes = Programme::join('programmes as f', 'd.id', '=', 'f.department_id')
+                ->select('f.id', 'f.department_id', 'f.programme', 'd.department', 'f.description', 'f.duration')
+                ->from('departments as d')
+                ->orderBy('d.id', 'desc')
+                ->where('f.is_deleted', 'No')
+                ->get();
+            return response()->json(['status' => 'success', 'programmes' => $programmes]);
+        }
+        return view('settings.programme');
+    }
+
+    public function addProgramme(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'department' => 'required|string',
+                'programme' => 'required|string',
+                'duration' => 'required|string',
+                'description' => 'nullable|string',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+
+            // Check if already exists
+            $existingDepartment = Programme::where('programme', $request->input('programme'))->first();
+            if ($existingDepartment) {
+                return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
+            }
+
+            // Save the record with validated fields
+            $instance = Programme::create([
+                'department_id' => $validator->validated()['department'],
+                'description' => $validator->validated()['description'],
+                'duration' => $validator->validated()['duration'],
+                'programme' => $validator->validated()['programme'],
+            ]);
+
+            if ($instance->save()) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data saved']);
+            }
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateProgramme(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'department' => 'required|string',
+                'programme' => 'required|string',
+                'duration' => 'required|string',
+                'description' => 'nullable|string',
+                'id' => 'required|exists:programmes,id',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                return response()->json(['status' => 'error', 'errors' => $validator->errors()->all()], 422);
+            }
+            // Update the record with validated fields
+            $updated = Programme::where('id', $validator->validated()['id'])->update([
+                'department_id' => $validator->validated()['department'],
+                'description' => $validator->validated()['description'],
+                'duration' => $validator->validated()['duration'],
+                'programme' => $validator->validated()['programme'],
+            ]);
+
+            if ($updated) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroyProgramme(Request $request)
+    {
+        if ($request->ajax()) {
+            $request->validate(['id' => 'required|exists:programmes,id',]);
+
+            try {
+                Programme::where('id', $request->id)->update(['is_deleted' => 'Yes']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
+
+    public function fetchProgrammes(Request $request)
+    {
+        $programmes = DB::table('programmes')->where('is_deleted', 'No')->orderBy('programme', 'asc')->select('programme', 'id')->get();
+        return response()->json(['programmes' => $programmes]);
+    }
+
+    public function fetchDepartmentProgrammes(Request $request)
+    {
+        $programmes = DB::table('programmes')->where('is_deleted', 'No')->where('department_id', $request->input('department_id'))->orderBy('programme', 'asc')->select('programme', 'id')->get();
+        return response()->json(['programmes' => $programmes]);
+    }
+
+
+    //TODO: SEMESTER ACTIONS
+    public function semesters(Request $request)
+    {
+        if ($request->ajax()) {
+            $semesters = Semester::orderBy('id', 'desc')->where('is_deleted','No')->get();
+            return response()->json(['status' => 'success', 'semesters' => $semesters]);
+        }
+        return view('settings.semester');
+    }
+
+    public function addSemester(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'semester' => 'required|string',
+                'description' => 'nullable|string',
+            ]);
+            
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+            $data = $validator->validated();
+
+            // Check if already exists
+            $existingFaculty = Semester::where('semester', $request->input('semester'))->first();
+            if ($existingFaculty) {
+                return response()->json(['status' => 'error', 'message' => 'Same semester has been created already, try again with different record'], 422);
+            }
+
+            // Save the record with validated fields
+            $instance = Semester::create($data);
+
+            if ($instance->save()) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, semester created']);
+            }
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateSemester(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'semester' => 'required|string',
+                'description' => 'nullable|string',
+                'id' => 'required|exists:semesters,id',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+
+            // Get validated data
+            $data = $validator->validated();
+            
+            // Update the record with validated fields
+            $updated = Semester::where('id', $data['id'])->update($data);
+
+            if ($updated) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroySemester(Request $request)
+    {
+        if ($request->ajax()) {
+            $request->validate(['id' => 'required|exists:semesters,id',]);
+
+            try {
+                Semester::where('id', $request->id)->update(['is_deleted' => 'Yes']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record marked as deleted']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
+
+    public function fetchSemesters(Request $request)
+    {
+        $semesters = DB::table('semesters')->where('is_deleted', 'No')->orderBy('semester', 'asc')->select('semester', 'id')->limit(2)->get();
+        return response()->json(['semesters' => $semesters]);
+    }
+
+
+    //TODO: SESSIONS OR THE ACADEMIC YEAR
+    public function sessions(Request $request)
+    {
+        if ($request->ajax()) {
+            $sessions = Sessions::orderBy('id', 'desc')->where('is_deleted','No')->get();
+            return response()->json(['status' => 'success', 'sessions' => $sessions]);
+        }
+        return view('settings.sessions');
+    }
+
+    public function addSession(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+    
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string',
+                'begins' => 'required|date|after_or_equal:today',
+                'ends' => 'required|date|after:begins',
+                'description' => 'nullable|string',
+            ]);
+    
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+    
+            // Get validated data
+            $data = $validator->validated();
+            // Check if already exists
+            $existingSession = Sessions::where('name', $request->input('name'))->first();
+            if ($existingSession) {
+                return response()->json(['status' => 'error', 'message' => 'Similar Session has been mounted already, unmount it before you can mount this session'], 422);
+            }
+    
+            // Save the record with validated fields
+            $instance = Sessions::create($data);
+    
+            if ($instance) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, session mounted']);
+            }
+    
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, session could not be mounted'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+    
+    public function updateSession(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string',
+                'begins' => 'required|date|after_or_equal:today',
+                'ends' => 'required|date|after:begins',
+                'description' => 'nullable|string',
+                'id' => 'required|exists:sessions,id',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                return response()->json(['status' => 'error', 'errors' => $validator->errors()->all()], 422);
+            }
+
+            // Get validated data
+            $data = $validator->validated();
+            
+            // Update the record with validated fields
+            $updated = Sessions::where('id', $data['id'])->update($data);
+
+            if ($updated) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroySession(Request $request)
+    {
+        if ($request->ajax()) {
+            $request->validate(['id' => 'required|exists:sessions,id',]);
+
+            try {
+                Sessions::where('id', $request->id)->update(['is_deleted' => 'Yes']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record marked as deleted']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
+
+    public function fetchSessions(Request $request)
+    {
+        $sessions = DB::table('sessions')->where('is_deleted', 'No')->orderBy('begins', 'asc')->select('name', 'id')->limit(1)->get();
+        return response()->json(['sessions' => $sessions]);
+    }
+
+
+    //TODO:  SEMESTER SESSION
+    public function sessionSemester(Request $request)
+    {
+        $encodedData = $request->query('id');
+        $title = '';
+        $id = '';
+
+        if ($encodedData) {
+            $data = json_decode(base64_decode($encodedData), true);
+            $id = $data['id'];
+            $title = $data['title']; 
+        }
+        
+        if ($request->ajax()) {
+            $keys = $request->input('keys');
+            // Log::info('IKEY: '. $keys);
+            $sessionSemesters = SessionSemester::join('semesters as s', 'ss.semester_id', '=', 's.id')
+                ->join('sessions as se', 'ss.session_id', '=', 'se.id')
+                ->select('ss.id', 'ss.session_id', 'ss.begins', 'ss.ends', 's.semester', 'ss.semester_id', 'ss.description', 'se.name', 'ss.status')
+                ->from('session_semesters as ss')
+                ->where('ss.is_deleted', 'No')
+                ->where('ss.session_id', $keys)
+                ->get();
+            return response()->json(['status' => 'success', 'semesters' => $sessionSemesters]);
+        }
+        
+        if ($encodedData) {
+            return view('settings/session-semester', ['title' => $title, 'session_id' => $id]);
+        } else {
+            return view('settings/sessions');
+        }
+    }
+
+    public function addSessionSemester(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'semester_id' => 'required|exists:semesters,id',
+                'session_id' => 'required|exists:sessions,id',
+                'begins' => 'required|date|after_or_equal:today',
+                'ends' => 'required|date|after:begins',
+                'description' => 'nullable|string',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+
+            // Get validated data
+            $data = $validator->validated();
+
+            // Retrieve the session begins date
+            $session = Sessions::find($data['session_id']);
+            if ($data['begins'] < $session->begins) {
+                return response()->json(['status' => 'error', 'message' => 'Semester cannot start before the academic year'], 422);
+            }
+
+            // Check if a similar record already exists
+            $existingSemester = SessionSemester::where('semester_id', $data['semester_id'])->where('begins', $data['begins'])->first();
+
+            if ($existingSemester) {
+                return response()->json(['status' => 'error', 'message' => 'Semester has been created already, no need to recreate'], 422);
+            }
+
+            // Check if there are ongoing semesters that haven't ended
+            $currentSemester = SessionSemester::where('session_id', $data['session_id'])->where('ends', '>', now())->orderBy('ends', 'desc')->first();
+
+            if ($currentSemester) {
+                $currentSemesterEnds = Carbon::parse($currentSemester->ends);
+                if ($currentSemesterEnds->diffInDays(now()) > 30) {
+                    return response()->json(['status' => 'error', 'message' => 'Sorry, you cannot create a new semester while the current semester has not ended. You can only create a new semester when it is within a month of the current semester ending or after it has ended.'], 422);
+                }
+            }
+
+            // Save the record with validated fields
+            $instance = SessionSemester::create($data);
+
+            if ($instance) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, session mounted']);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Sorry! Operation failed, session could not be mounted'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateSessionSemester(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'begins' => 'required|date|after_or_equal:today',
+                'ends' => 'required|date|after:begins',
+                'description' => 'nullable|string',
+                'id' => 'required|exists:session_semesters,id',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                return response()->json(['status' => 'error', 'errors' => $validator->errors()->all()], 422);
+            }
+
+            // Get validated data
+            $data = $validator->validated();
+            
+            // Update the record with validated fields
+            $updated = SessionSemester::where('id', $data['id'])->update($data);
+
+            if ($updated) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroySessionSemester(Request $request)
+    {
+        if ($request->ajax()) {
+            $request->validate(['id' => 'required|exists:session_semesters,id',]);
+
+            try {
+                SessionSemester::where('id', $request->id)->update(['is_deleted' => 'Yes']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record marked as deleted']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
+
+    public function fetchSessionSemesters(Request $request)
+    {
+        $sessionSemesters = SessionSemester::join('semesters as s', 'ss.semester_id', '=', 's.id')
+            ->join('sessions as se', 'ss.session_id', '=', 'se.id')->select('ss.id', 's.semester')
+            ->from('session_semesters as ss')
+            ->where('ss.is_deleted', 'No')->where('ss.session_id', $request->input('session_id'))->get();
+
+        return response()->json(['status' => 'success', 'semesters' => $sessionSemesters]);
+    }
+
+
+
+    //TODO: SESSION COURSES
+    public function sessionCourse(Request $request)
+    {
+        if ($request->ajax()) {
+            $sessionCourses = SessionCourses::select(
+                DB::raw('p.programme, l.class, c.course, c.course_code, s.semester, sc.status')
+            )
+            ->join('session_semesters as ss', 'ss.id', '=', 'sc.session_semester_id')->join('courses as c', 'c.id', '=', 'sc.course_id')
+            ->join('classes as l', 'l.id', '=', 'sc.classes_id')->join('programmes as p', 'p.id', '=', 'sc.programme_id')
+            ->join('semesters as s', 's.id', '=', 'ss.semester_id')->from('session_courses as sc')->where('sc.is_deleted', 'No')
+            ->orderBy('l.class', 'ASC')->orderBy('c.course', 'ASC')->get();
+
+            return response()->json(['status' => 'success', 'sessionCourses' => $sessionCourses]);
+        }
+
+        return view('settings/session-course');
+    }
+
+    public function addSessionCourse(Request $request)
+    {
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'semester' => 'required|exists:session_semesters,id',
+                'level' => 'required|exists:classes,id',
+                'programme' => 'required|exists:programmes,id',
+                'course' => 'required|array',
+                'course.*' => 'exists:courses,id',
+                'description' => 'nullable|string',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+
+            // Get validated data
+            $data = $validator->validated();
+
+            // Loop through each course and insert individually
+            foreach ($data['course'] as $courseId) {
+                $sessionCourseData = [
+                    'session_semester_id' => $data['semester'],
+                    'classes_id' => $data['level'],
+                    'programme_id' => $data['programme'],
+                    'course_id' => $courseId,
+                    'description' => $data['description'] ?? null,
+                ];
+
+                // Check if the course is already mounted
+                $existingCourse = SessionCourses::where('course_id', $courseId)
+                    ->where('session_semester_id', $data['semester'])->where('classes_id', $data['level'])->where('programme_id', $data['programme'])->where('status', 'Mounted')->first();
+
+                if ($existingCourse) {
+                    return response()->json(['status' => 'error', 'message' => 'Course has been already mounted for this this semester'], 422);
+                }
+
+                // Create a new session course
+                SessionCourses::create($sessionCourseData);
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Request sent, operation performed successfully, courses mounted']);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateSessionCourse(Request $request)
+    {
+        // Logic to update a session-course
+    }
+
+    public function destroySessionCourse(Request $request)
+    {
+        // Logic to delete a session-course
+    }
+
+    public function fetchSessionCourses(Request $request)
+    {
+        // Logic to fetch session-courses
+    }
 
 
 
@@ -411,14 +1010,14 @@ class SettingsController extends Controller
     public function faculties(Request $request)
     {
         if ($request->ajax()) {
-            $facultys = Faculty::all();
-            return response()->json(['status' => 'success', 'facultys' => $facultys]);
+            $faculties = Faculty::where('is_deleted','No')->orderBy('id', 'desc')->get();
+            return response()->json(['status' => 'success', 'facultys' => $faculties]);
         }
         return view('settings.faculties');
     }
     public function fetch_faculties(Request $request)
     {
-        $faculties = DB::table('faculties')->orderBy('faculty', 'asc')->select('faculty', 'id')->get();
+        $faculties = DB::table('faculties')->where('is_deleted', 'No')->orderBy('faculty', 'asc')->select('faculty', 'id')->get();
         return response()->json(['faculties' => $faculties]);
     }
     public function addFaculty(Request $request)
@@ -436,7 +1035,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Check if already exists
@@ -476,7 +1075,7 @@ class SettingsController extends Controller
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
             // Update the record with validated fields
             $updated = Faculty::where('id', $validator->validated()['id'])->update([
@@ -485,7 +1084,7 @@ class SettingsController extends Controller
             ]);
 
             if ($updated) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data updated']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record updated you can check it out']);
             }
 
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
@@ -497,41 +1096,30 @@ class SettingsController extends Controller
     public function destroyFaculty(Request $request)
     {
         if ($request->ajax()) {
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:faculties,id',
-            ]);
-    
+            $request->validate(['id' => 'required|exists:faculties,id',]);
+
             try {
-                // Find the role by id and delete it
-                $faculty = Faculty::find($validator->validated()['id']);
-                $faculty->delete();
-    
+                Faculty::where('id', $request->id)->update(['is_deleted' => 'Yes']);
                 return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
             } catch (\Exception $e) {
                 Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
             }
         }
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
-
-    
-
+  
 
     //TODO: ALL ABOUT THE CLASSES
     public function classes(Request $request)
     {
         if ($request->ajax()) {
-            $classes = Classes::join('departments as d', 'd.id', '=', 'c.department_id')
-                ->select('c.id', 'c.department_id', 'd.department', 'c.name')
-                ->from('classes as c')
-                ->orderBy('c.id', 'desc')
-                ->get();
+            $classes = Classes::where('is_deleted','No')->orderBy('id', 'desc')->get();
             return response()->json(['status' => 'success', 'classes' => $classes]);
         }
         return view('settings.classes');
     }
+    
     public function addClass(Request $request)
     {
         if (!$request->ajax()) {
@@ -542,30 +1130,26 @@ class SettingsController extends Controller
             // Validate the input
             $validator = Validator::make($request->all(), [
                 'classes' => 'required|string',
-                'department' => 'required|string',
             ]);
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Check if already exists
-            $existingClass = Classes::where('name', $request->input('classes'))
-                ->where('department_id', $request->input('department'))
-                ->first();
+            $existingClass = Classes::where('class', $request->input('classes'))->first();
                 if ($existingClass) {
-                    return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
+                    return response()->json(['status' => 'error', 'message' => 'Class already exists, try again with different record'], 422);
                 }
 
             // Save the record with validated fields
             $instance = Classes::create([
-                'name' => $validator->validated()['classes'],
-                'department_id' => $validator->validated()['department'],
+                'class' => $validator->validated()['classes'],
             ]);
 
             if ($instance->save()) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data saved']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, class created']);
             }
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
         } catch (\Exception $e) {
@@ -582,23 +1166,21 @@ class SettingsController extends Controller
         try {
             // Validate the input
             $validator = Validator::make($request->all(), [
-                'department' => 'required|numeric',
                 'classes' => 'required|string',
                 'id' => 'required|exists:classes,id',
             ]);
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
             // Update the record with validated fields
             $updated = Classes::where('id', $validator->validated()['id'])->update([
-                'department_id' => $validator->validated()['department'],
-                'name' => $validator->validated()['classes'],
+                'class' => $validator->validated()['classes'],
             ]);
 
             if ($updated) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data updated']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, class updated you can check it out']);
             }
 
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
@@ -610,42 +1192,40 @@ class SettingsController extends Controller
     public function destroyClass(Request $request)
     {
         if ($request->ajax()) {
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:classes,id',
-            ]);
-    
+            $request->validate(['id' => 'required|exists:classes,id',]);
+
             try {
-                // Find the role by id and delete it
-                $classes = Classes::find($validator->validated()['id']);
-                $classes->delete();
-    
+                Classes::where('id', $request->id)->update(['is_deleted' => 'Yes']);
                 return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
             } catch (\Exception $e) {
                 Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
             }
         }
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
-
-
-
+    public function fetchLevels(Request $request)
+    {
+        $levels = DB::table('classes')->where('is_deleted', 'No')->orderBy('class', 'asc')->select('class', 'id')->get();
+        return response()->json(['levels' => $levels]);
+    }
 
 
     //TODO: ALL ABOUT THE COURSES
     public function courses(Request $request)
     {
         if ($request->ajax()) {
-            $courses = Course::join('departments as d', 'd.id', '=', 'c.department_id')
-                ->select('c.id', 'c.department_id', 'd.department', 'c.course', 'c.course_code', 'c.course_type', 'c.description')
+            $courses = Course::join('programmes as d', 'd.id', '=', 'c.programme_id')
+                ->select('c.id', 'c.programme_id', 'd.programme', 'c.course', 'c.course_code', 'c.course_type', 'c.description', 'c.accessors')
                 ->from('courses as c')
+                ->where('c.is_deleted', 'No')
                 ->orderBy('c.id', 'desc')
                 ->get();
             return response()->json(['status' => 'success', 'courses' => $courses]);
         }
         return view('settings.courses');
     }
+    
     public function addCourse(Request $request)
     {
         if (!$request->ajax()) {
@@ -658,41 +1238,51 @@ class SettingsController extends Controller
                 'course' => 'required|string',
                 'course-code' => 'required|string',
                 'course-type' => 'required|string',
-                'department' => 'required|string',
+                'programme' => 'required|exists:programmes,id',
+                'accessors' => 'nullable|string',
                 'description' => 'required|string',
             ]);
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
             // Check if already exists
             $existingCourse = Course::where('course', $request->input('course'))
-                ->where('department_id', $request->input('department'))
+                ->where('course_code', $request->input('course-code'))
                 ->first();
-                if ($existingCourse) {
-                    return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
-                }
+            if ($existingCourse) {
+                return response()->json(['status' => 'error', 'message' => 'Course already exists, try again with a different course code'], 422);
+            }
+
+            // Prepare the data for saving
+            $validatedData = $validator->validated();
+            $courseData = [
+                'course' => $validatedData['course'],
+                'course_type' => $validatedData['course-type'],
+                'course_code' => $validatedData['course-code'],
+                'description' => $validatedData['description'],
+                'programme_id' => $validatedData['programme'],
+            ];
+
+            if (!empty($validatedData['accessors'])) {
+                $courseData['accessors'] = $validatedData['accessors'];
+            }
 
             // Save the record with validated fields
-            $instance = Course::create([
-                'course' => $validator->validated()['course'],
-                'course_type' => $validator->validated()['course-type'],
-                'course_code' => $validator->validated()['course-code'],
-                'description' => $validator->validated()['description'],
-                'department_id' => $validator->validated()['department'],
-            ]);
+            $instance = Course::create($courseData);
 
             if ($instance->save()) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data saved']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent successfully, course has been created']);
             }
-            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
+            return response()->json(['status' => 'error', 'message' => 'Sorry! Operation failed, data could not be created'], 500);
         } catch (\Exception $e) {
             Log::error('Exception during operation: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
+
     public function updateCourse(Request $request)
     {
         if (!$request->ajax()) {
@@ -705,26 +1295,35 @@ class SettingsController extends Controller
                 'course' => 'required|string',
                 'course-code' => 'required|string',
                 'course-type' => 'required|string',
-                'department' => 'required|numeric',
+                'programme' => 'required|exists:programmes,id',
+                'accessors' => 'nullable|string',
                 'description' => 'required|string',
                 'id' => 'required|exists:courses,id',
             ]);
 
             // If validation fails, return JSON response with validation errors
             if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
             // Update the record with validated fields
-            $updated = Course::where('id', $validator->validated()['id'])->update([
-                'course' => $validator->validated()['course'],
-                'course_type' => $validator->validated()['course-type'],
-                'course_code' => $validator->validated()['course-code'],
-                'description' => $validator->validated()['description'],
-                'department_id' => $validator->validated()['department'],
-            ]);
+            $validatedData = $validator->validated();
+            $courseData = [
+                'course' => $validatedData['course'],
+                'course_type' => $validatedData['course-type'],
+                'course_code' => $validatedData['course-code'],
+                'description' => $validatedData['description'],
+                'programme_id' => $validatedData['programme'],
+            ];
+
+            if (!empty($validatedData['accessors'])) {
+                $courseData['accessors'] = $validatedData['accessors'];
+            }
+
+            // Save the record with validated fields
+            $updated = Course::where('id', $validator->validated()['id'])->update($courseData);
 
             if ($updated) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, data updated']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, course updated you can check it out']);
             }
 
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be updated'], 500);
@@ -736,28 +1335,25 @@ class SettingsController extends Controller
     public function destroyCourse(Request $request)
     {
         if ($request->ajax()) {
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:courses,id',
-            ]);
-    
+            $request->validate(['id' => 'required|exists:courses,id',]);
+
             try {
-                // Find the role by id and delete it
-                $courses = Course::find($validator->validated()['id']);
-                $courses->delete();
-    
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
+                Course::where('id', $request->id)->update(['is_deleted' => 'Yes']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, course has been released']);
             } catch (\Exception $e) {
                 Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
             }
         }
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
 
-
-
-
+    // 
+    public function fetchProgrammeCourses(Request $request)
+    {
+        $courses = DB::table('courses')->where('is_deleted', 'No')->where('programme_id', $request->input('programme_id'))->orderBy('course', 'asc')->select('course', 'id')->get();
+        return response()->json(['courses' => $courses]);
+    }
 
 
     public function systemDictionary(Request $request)

@@ -2,11 +2,9 @@
 
 @extends('layout.main')
 
-@section('title', 'Classes')
+@section('title', 'Levels')
 
 @section('content')
-
-
 
 
 <div class="container-fluid">
@@ -17,7 +15,7 @@
                 
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">NES</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">{{ env('APP_ALIASE')}}</a></li>
                         <li class="breadcrumb-item"><a href="javascript: void(0);">System Settings</a></li>
                         <li class="breadcrumb-item active">@yield('title')</li>
                     </ol>
@@ -62,9 +60,8 @@
                                 <tr class="text-uppercase">
                                     <th><input type="checkbox" id="selectAllCheckboxes"/></th>
                                     <th>#</th>
-                                    <th>Department</th>
-                                    <th>Class</th>
-                                    <th>Action</th>
+                                    <th class="w-100">Level Title</th>
+                                    <th class="text-end">Action</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -97,24 +94,8 @@
                 <form class="px-3" id="my-form">
                     <input type="hidden" id="gottenId" name="id">
                     <div class="mb-1">
-                        <label for="types" class="form-label">Related Department</label>
-                        <select id="department" name="department" class="select2 form-control" data-toggle="select2">
-                            <option selected disabled>Choose...</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-0" id="div-class">
-                        <label for="classes" class="form-label">Available Classes</label>
-                        <select id="classes" name="classes" class="select2 form-control" data-toggle="select2">
-                            <option selected disabled>Choose...</option>
-                            @for ($level = 100; $level <= 900; $level += 100)
-                                <optgroup label="Level {{ $level }}">
-                                    @for ($subgroup = 1; $subgroup <= 10; $subgroup++)
-                                        <option value="{{ $level }} Group {{ $subgroup }}">{{ $level }} Group {{ $subgroup }}</option>
-                                    @endfor
-                                </optgroup>
-                            @endfor
-                        </select>
+                        <label for="course" class="form-label">Level title here </label>
+                        <input type="text" name="classes" id="classes" class="form-control" placeholder="eg. Level 100" />
                     </div>
                 </form>
                 
@@ -144,30 +125,11 @@
         var dataTable = "";
         var counter = 0;
 
-        //GET DEPARTMENTS FROM DB AND FILL ROLE
-        $.ajax({
-            url: '{{ route("fetch-departments") }}',
-            type: 'GET',
-            dataType: 'json',
-            success: function (data) {
-                var roleSelect = $('#department');
-                roleSelect.empty();
-                roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.departments, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.department + '</option>');
-                });
-                roleSelect.select2({ dropdownParent: roleSelect.parent() });
-            },
-            error: function (xhr, textStatus, errorThrown) {
-                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
-            }
-        }); 
-        
 
         //CALLING THE MODAL TO ADD NEW RECORD
         $('#add-new-button').click( function()
         {
-            $('#modal-title').text('ADDING NEW RECORD TO EAS');
+            $('#modal-title').text('Creating Course to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
             $('#save-data').show('fade');
             $('#my-modal').addClass('modal-blur').modal('show');
@@ -268,8 +230,7 @@
         //VALIDATE FORM
         function validateForm() {
             let classes = $('#classes').val();
-            let dept = $('#department').val();
-            return dept && classes;
+            return classes;
         }
 
         // Function to show SweetAlert message
@@ -282,12 +243,10 @@
             // Get the data attributes
             let Id = $(this).data('id');
             let title = $(this).data('classes');
-            let department = $(this).data('department');
 
             // Set the values in the input fields
             $('#gottenId').val(Id);
-            $('#department').val(department).trigger('change'); 
-            $('#classes').val(title).trigger('change');
+            $('#classes').val(title);
             
             $('#modal-title').text('Modifying - ' + title);
             $('#save-data').hide('fade');
@@ -354,7 +313,7 @@
                 {
                     data: null,
                     render: function (data, type, row) {
-                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.name + '"/>';
+                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.class + '"/>';
                     },
                 },
                 {
@@ -363,13 +322,12 @@
                         return ++counter;
                     }
                 },
-                { data: 'department'},
-                { data: 'name'},
+                { data: 'class'},
                 {
-                    data: null,
+                    data: null,class: 'text-end',
                     render: function(data, type, row) {
-                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-department="' + data.department_id + '" data-classes="' + data.name + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.name + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
+                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-classes="' + data.class + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
+                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.class + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
                     }
                 }
             ],

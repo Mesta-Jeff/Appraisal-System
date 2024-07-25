@@ -15,7 +15,7 @@
                 
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="javascript: void(0);">NES</a></li>
+                        <li class="breadcrumb-item"><a href="javascript: void(0);">{{ env('APP_ALIASE')}}</a></li>
                         <li class="breadcrumb-item"><a href="javascript: void(0);">System Settings</a></li>
                         <li class="breadcrumb-item active">@yield('title')</li>
                     </ol>
@@ -119,6 +119,11 @@
                                 <option value="system-config">System Config</option>
                                 <option value="system-dictionary">System Dictionary</option>
                                 <option value="temp-appraisal">Temp Appraisal</option>
+                                <option value="view-programme">View Programme</option>
+                                <option value="view-sessions">View Session</option>
+                                <option value="view-semester">View Semester</option>
+                                <option value="view-session-semester">View Session Semester</option>
+                                <option value="view-session-course">View Session Course</option>
                             </optgroup>
                             <optgroup label="Appraisal">
                                 <option value="available-staff">Available Staff</option>
@@ -243,7 +248,7 @@
             getPermissionAndHide();
 
             $('#description').text(null);
-            $('#modal-title').text('ADDING NEW RECORD TO EAS');
+            $('#modal-title').text('Adding New Record to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
             $('#save-data').show('fade');
             $('#my-modal').addClass('modal-blur').modal('show');

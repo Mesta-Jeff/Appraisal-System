@@ -2,9 +2,11 @@
 
 @extends('layout.main')
 
-@section('title', 'Department')
+@section('title', 'Semesters')
 
 @section('content')
+
+
 
 
 <div class="container-fluid">
@@ -30,11 +32,11 @@
             <div class="card">
                 <div class="card-body" style="margin: -10px 0  -10px 0;">
                     <div class="row">
-                        <div class="col-lg-6 col-sm-4 d-flex gap-2">
+                        <div class="col-lg-8 col-sm-6 d-flex gap-2">
                             <h4 class="page-title">Current @yield('title')</h4>
                             <button class="btn btn-danger" type="button" id="bulk-remove" style="display: none" > Remove</button>
                         </div>
-                        <div class="col-lg-6 col-sm-8">
+                        <div class="col-lg-4 col-sm-6">
                             <div class="d-flex gap-2 justify-content-lg-end mt-3 mt-lg-0">
                                 <button type="button" id="btnref" class="btn btn-secondary"><i class="mdi mdi-atom-variant spin"></i> Reload</button>
                                 <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Add New</button>
@@ -60,8 +62,7 @@
                                 <tr class="text-uppercase">
                                     <th><input type="checkbox" id="selectAllCheckboxes"/></th>
                                     <th>#</th>
-                                    <th>Faculty</th>
-                                    <th>Department</th>
+                                    <th>Semester</th>
                                     <th>Description</th>
                                     <th>Action</th>
                                 </tr>
@@ -96,17 +97,12 @@
                 <form class="px-3" id="my-form">
                     <input type="hidden" id="gottenId" name="id">
                     <div class="mb-2">
-                        <label for="username" class="form-label">Available Faculties </label>
-                        <select id="faculty" name="faculty" class="select2 form-control" data-toggle="select2">
-                            <option selected disabled>Choose...</option>
-                        </select>
+                        <label for="semester" class="form-label">Name of semester </label>
+                        <input type="text" id="semester" name="semester" class="form-control" placeholder="Enter semester title" />
                     </div>
-                    <div class="mb-2">
-                        <label for="department" class="form-label">Name of Department </label>
-                        <input type="text" id="department" name="department" class="form-control" placeholder="Enter department name here" />
-                    </div>
+
                     <div class="form-floating mb-2">
-                        <textarea class="form-control" placeholder="Description here..." name="description" id="description" style="height: 100px">
+                        <textarea class="form-control" placeholder="Description here..." id="description" name="description" style="height: 100px">
                         </textarea>
                         <label for="descriptions">Description here...</label>
                     </div>
@@ -128,7 +124,6 @@
 
 
 <script>
-
     // Function to show loader
     function showLoader() { $('#loader').show(); }
     function hideLoader() { $('#loader').hide(); }
@@ -137,25 +132,6 @@
 
         var dataTable = "";
         var counter = 0;
-
-        //GET FACULTY FROM DB AND FILL ROLE
-        $.ajax({
-            url: '{{ route("fetch-faculties") }}',
-            type: 'GET',
-            dataType: 'json',
-            success: function (data) {
-                var roleSelect = $('#faculty');
-                roleSelect.empty();
-                roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.faculties, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.faculty + '</option>');
-                });
-                roleSelect.select2({ dropdownParent: roleSelect.parent() });
-            },
-            error: function (xhr, textStatus, errorThrown) {
-                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
-            }
-        }); 
         
 
         //CALLING THE MODAL TO ADD NEW RECORD
@@ -177,11 +153,12 @@
             }
 
             let formData = $('#my-form').serialize();
+
             let buttonElement = $(this);
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('addDepartment') }}',
+                url: '{{ route('addSemester') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
@@ -227,7 +204,7 @@
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('updateDepartment') }}',
+                url: '{{ route('updateSemester') }}',
                 type: 'POST',
                 data: formData,
                 headers: {
@@ -262,11 +239,10 @@
 
         //VALIDATE FORM
         function validateForm() {
-            let faculty = $('#faculty').val();
-            let dept = $('#department').val();
+            let semester = $('#semester').val();
             let descriptions = $('#description').val();
 
-            return faculty && descriptions && dept;
+            return semester && descriptions;
         }
 
         // Function to show SweetAlert message
@@ -278,14 +254,12 @@
         $('#example').on('click', '.edit-btn', function () {
             // Get the data attributes
             let Id = $(this).data('id');
-            let title = $(this).data('department');
-            let faculty = $(this).data('faculty');
+            let title = $(this).data('semester');
             let description = $(this).data('description');
 
             // Set the values in the input fields
             $('#gottenId').val(Id);
-            $('#faculty').val(faculty).trigger('change'); 
-            $('#department').val(title); 
+            $('#semester').val(title); 
             $('#description').text(description);
             
             $('#modal-title').text('Modifying - ' + title);
@@ -311,7 +285,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '{{ route("destroyDepartment") }}',
+                        url: '{{ route("destroySemester") }}',
                         type: 'POST',
                         data: { id: Id },
                         headers: {
@@ -343,9 +317,9 @@
         dataTable = $("#example").DataTable(
         {
             ajax: {
-                url: '{{ route('departments') }}',
+                url: '{{ route('semester') }}',
                 type: 'GET',
-                dataSrc: 'departments',
+                dataSrc: 'semesters',
                 beforeSend: showLoader,
                 complete: hideLoader,
             },
@@ -353,7 +327,7 @@
                 {
                     data: null,
                     render: function (data, type, row) {
-                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.department + '"/>';
+                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.semester + '"/>';
                     },
                 },
                 {
@@ -362,14 +336,13 @@
                         return ++counter;
                     }
                 },
-                { data: 'faculty'},
-                { data: 'department'},
-                { data: 'description'},
+                { data: 'semester'},
+                { data: 'description' , class: 'w-100'},
                 {
-                    data: null,
+                    data: null, class: 'text-end',
                     render: function(data, type, row) {
-                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-faculty="' + data.faculty_id + '" data-department="' + data.department + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.department + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
+                        return '<button class="btn btn-primary btn-sm edit-btn mx-2" data-id="' + data.id + '" data-description="' + data.description + '" data-semester="' + data.semester + '"><i class="fas fa-edit mx-1"></i>Edit</button>' +
+                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.semester + '"><i class="fas fa-trash mx-1"></i>Remove</button>';
                     }
                 }
             ],
@@ -414,7 +387,7 @@
         $('#bulk-remove').on('click', function () {
             var checkedCheckboxes = $('.select-checkbox:checked');
             if (checkedCheckboxes.length > 0) {
-                let table='departments'
+                let table='semesters'
                 performBulkRemove(table);
             } else {
                 Swal.fire({
@@ -480,4 +453,5 @@
 </script>
     
 @endsection
+
 

@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('faculties', function (Blueprint $table) {
-            $table->bigIncrements('id')->startingValue(1300);
-            $table->string('faculty')->unique();
+        Schema::create('programmes', function (Blueprint $table) {
+            $table->bigIncrements('id')->startingValue(5500);
+            $table->foreignId('department_id')->constrained()->onDelete('cascade');
+            $table->string('programme')->unique();
+            $table->string('duration', 15)->default('4 Years');
             $table->text('description')->default('No Description');
             $table->string('status', 10)->default('Active');
             $table->timestamps();
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('faculties');
+        Schema::dropIfExists('programmes');
     }
 };
