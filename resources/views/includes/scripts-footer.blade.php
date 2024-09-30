@@ -44,12 +44,17 @@
             $(document).ready(function() {
 
                 //INITIALIZING THE SELECT STYLE
-                $('.select2').each(function() { 
-                    $(this).select2({ 
-                        dropdownParent: $(this).parent(),
+                const select2Elements = document.querySelectorAll('.select2');
+                select2Elements.forEach(select2Element => {
+                    const select2Instance = new Select2(select2Element, {
+                        dropdownParent: select2Element.parentElement,
                         width: '100%'
                     });
-                    // $(this).val($(this).find('option:first').val()).trigger('change');
+
+                    const selectedOption = select2Element.querySelector('option:selected');
+                    if (selectedOption) {
+                        select2Instance.trigger('change', { val: selectedOption.value });
+                    }
                 });
             });
         </script>

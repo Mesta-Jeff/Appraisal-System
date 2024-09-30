@@ -31,33 +31,39 @@
                     </div>
 
                     <form id="my-form" action="post">
-                        <div class="mb-2">
-                            <label for="emailaddress" class="form-label">Email address</label>
-                            <input class="form-control" type="email" id="emailaddress" placeholder="Enter your username">
+                        <div id="myAlert" class="alert alert-danger mt-4" role="alert" style="display:none;">
+                            <p id="my_para"></p>
                         </div>
 
                         <div class="mb-2">
-                            <label for="password" class="form-label">Password</label>
+                            <label for="emailaddress" class="form-label">Provide Username</label>
+                            <input class="form-control" type="text" id="username">
+                            <label id="nameError" style="display: none; color: red;">
+                                Username should be accurate and it should exist</label>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="password" class="form-label">Enter Password</label>
                             <div class="input-group input-group-merge">
-                                <input type="password" id="password" class="form-control" placeholder="Enter your password">
-                                
+                                <input type="password" id="password-input"  class="form-control">  
                                 <div class="input-group-text" data-password="false">
                                     <span class="password-eye"></span>
                                 </div>
                             </div>
+                            <label id="passError" style="display: none; color: red;">  Please enter a valid password to your account</label>
                         </div>
 
                         <div class="mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="checkbox-signin">
-                                <label class="form-check-label" for="checkbox-signin">
+                                <input class="form-check-input" type="checkbox" id="auth-remember-check">
+                                <label class="form-check-label" for="auth-remember-check">
                                     Remember me
                                 </label>
                             </div>
                         </div>
 
                         <div class="d-grid mb-0 text-center">
-                            <button class="btn btn-primary" type="button" id="btn-login"> Continue Login </button>
+                            <button class="btn btn-primary" type="button" id="btnSubmit"> Continue Action </button>
                         </div>
 
                     </form>
@@ -80,11 +86,119 @@
 </div>
 
 
+<script src="{{ asset('root/mint/assets/libs/jquery/jquery.min.js') }}"></script>
+<script src="{{ asset('root/mint/assets/libs/sweetalert2/sweetalert2.min.js') }}"></script>
+
 <script>
-    document.getElementById('btn-login').addEventListener('click', function() {
-        window.location.href = "{{ route('student.dashboard') }}";
+    $(document).ready(function() {
+
+        var rememberedUsername = localStorage.getItem('rememberedUsername');
+        if (rememberedUsername !== null) {
+            $('#username').val(rememberedUsername);
+            $('#auth-remember-check').prop('checked', true);
+        }
+
+        $('#btnSubmit').click(function(e) {
+            e.preventDefault();
+            var buttonElement = $(this);
+
+            var username = $('#username').val();
+            var password = $('#password-input').val();
+
+            var rememberMe = $('#auth-remember-check').prop('checked');
+            if (rememberMe) {
+                localStorage.setItem('rememberedUsername', username);
+            } else {
+                localStorage.removeItem('rememberedUsername');
+            }
+
+            if (username.length < 5) {
+                $('#nameError').show();
+            } else {
+                $('#nameError').hide();
+                $("#myAlert").hide();
+            }
+            if (password.length < 5) {
+                $('#passError').show();
+            } else {
+                $('#passError').hide();
+                $("#myAlert").hide();
+                if (username.length >= 5 && password.length >= 5) {
+
+                    // Send ajax request to the backend
+                    buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Authenticating... ').attr("disabled", true);
+
+                    $.ajax({
+                        type: "POST",
+                        url: '{{ route('signin') }}',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            username: username,
+                            password: password,
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                window.location.href = response.redirect;
+                            } else {
+                                buttonElement.prop('disabled', false).text('Confirm Action').css('cursor', 'pointer');
+                                $("#my_para").html(response.message);
+                                $("#myAlert").show();
+                            }
+                        },
+                        error: function(xhr, textStatus, errorThrown) {
+                            let errorMessage;
+
+                            // Check if the response contains the specific IP field error
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+
+                                // Check if the response contains the 'message' field
+                                if (response.message) {
+                                    // Check if 'message' is an object and contains the 'ip' field
+                                    if (typeof response.message === 'object' && response.message.ip) {
+                                        errorMessage = "Please check your internet connection and try again";
+                                    } else {
+                                        // Use the general message if available
+                                        errorMessage = response.message;
+                                    }
+                                } else {
+                                    errorMessage = "An unknown error occurred. Please try again also check your internet connection";
+                                }
+                            } catch (e) {
+                                errorMessage = "An unknown error occurred. Please try again also check your internet connection";
+                            }
+
+                            $("#my_para").html(errorMessage);
+                            $("#myAlert").show();
+                            buttonElement.prop('disabled', false).text('Confirm Action').css('cursor', 'pointer');
+                        }
+                    });
+                }
+            }
+        });
+
+        $("#username").on("input", function() {
+            if ($(this).val().length > 0) {
+                $("#myAlert").hide();
+                $('#nameError').hide();
+            }
+            else{
+                $('#nameError').show();
+            }
+        });
+
+        $("input[type='password']").on("input", function() {
+            if ($(this).val().length > 0) {
+                $('#passError').hide();
+                $("#myAlert").hide();
+            } else {
+                $('#passError').show();
+            }
+        });
+
+
     });
-</script>
+    </script>
 
 
 @endsection

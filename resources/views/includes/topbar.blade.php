@@ -37,58 +37,6 @@
 
             <li class="dropdown notification-list topbar-dropdown">
                 <a class="nav-link dropdown-toggle waves-effect waves-light" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                    <i class="fe-navigation noti-icon"></i>
-                    <span class="badge bg-danger rounded-circle noti-icon-badge" style="display: none;">0</span>
-                </a>
-                <div class="dropdown-menu dropdown-menu-end dropdown-lg">
-
-                    <!-- item-->
-                    <div class="dropdown-item noti-title">
-                        <h5 class="m-0">
-                            <span class="float-end">
-                                <a href="layouts-detached.html" class="text-dark">
-                                    <small>Clear All</small>
-                                </a>
-                            </span>Notification
-                        </h5>
-                    </div>
-
-                    <div class="noti-scroll" data-simplebar>
-
-                        <!-- item-->
-                        <a href="javascript:void(0);" class="dropdown-item notify-item active">
-                            <div class="notify-icon bg-soft-primary text-primary">
-                                <i class="mdi mdi-comment-account-outline"></i>
-                            </div>
-                            <p class="notify-details">Doug Dukes commented on Admin Dashboard
-                                <small class="text-muted">1 min ago</small>
-                            </p>
-                        </a>
-
-                        <!-- item-->
-                        <a href="javascript:void(0);" class="dropdown-item notify-item">
-                            <div class="notify-icon">
-                                <img src="assets/images/users/avatar-2.jpg" class="img-fluid rounded-circle" alt="" /> </div>
-                            <p class="notify-details">Mario Drummond</p>
-                            <p class="text-muted mb-0 user-msg">
-                                <small>Hi, How are you? What about our next meeting</small>
-                            </p>
-                        </a>
-                        
-                    </div>
-
-                    <!-- All-->
-                    <a href="javascript:void(0);" class="dropdown-item text-center text-primary notify-item notify-all">
-                        View all
-                        <i class="fe-arrow-right"></i>
-                    </a>
-
-                </div>
-            </li>
-
-
-            <li class="dropdown notification-list topbar-dropdown">
-                <a class="nav-link dropdown-toggle waves-effect waves-light" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                     <i class="fe-bell noti-icon"></i>
                     <span class="badge bg-danger rounded-circle noti-icon-badge" style="display: none;">0</span>
                 </a>
@@ -141,15 +89,15 @@
 
             <li class="dropdown notification-list topbar-dropdown">
                 <a class="nav-link dropdown-toggle nav-user me-0 waves-effect waves-light" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                    <img src="{{ asset('root/mint/assets/images/users/avatar-1.jpg') }}" alt="img" class="rounded-circle">
+                    <img src="{{ asset('root/images/user.png') }}" alt="img" class="rounded-circle">
                     <span class="pro-user-name ms-1">
-                        Username here <i class="mdi mdi-chevron-down"></i> 
+                        {{ session('name') ?? ''}}<i class="mdi mdi-chevron-down"></i> 
                     </span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end profile-dropdown ">
                     <!-- item-->
                     <div class="dropdown-header noti-title">
-                        <h6 class="text-overflow m-0">Welcome !</h6>
+                        <h6 class="text-overflow m-0">Welcome {{ session('name') ?? ''}}</h6>
                     </div>
 
                     <!-- item-->
@@ -158,6 +106,7 @@
                         <span>My Account</span>
                     </a>
 
+                    
                     <!-- item-->
                     <a href="javascript:void(0);" class="dropdown-item notify-item">
                         <i class="ri-settings-3-line"></i>
@@ -179,7 +128,7 @@
                     <div class="dropdown-divider"></div>
 
                     <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item notify-item text-danger">
+                    <a href="{{ route('logout')}}" class="dropdown-item notify-item text-danger">
                         <i class="ri-logout-box-line"></i>
                         <span>Logout</span>
                     </a>
@@ -238,7 +187,7 @@
                 <!-- End mobile menu toggle-->
             </li>   
 
-            <li class="dropdown d-none d-xl-block">
+            {{-- <li class="dropdown d-none d-xl-block">
                 <a class="nav-link dropdown-toggle waves-effect waves-light" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                     Create New
                     <i class="mdi mdi-chevron-down"></i> 
@@ -277,7 +226,8 @@
                     </a>
 
                 </div>
-            </li>
+            </li> --}}
+            
         </ul>
         <div class="clearfix"></div>
     </div>

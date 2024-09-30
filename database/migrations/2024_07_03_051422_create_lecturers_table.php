@@ -18,12 +18,15 @@ return new class extends Migration
             $table->string('initials', 10)->nullable();
             $table->foreignId('department_id')->constrained()->onDelete('cascade');
             $table->string('first_name', 50);
+            $table->string('middle_name', 50);
             $table->string('last_name', 150);
             $table->string('gender', 10);
             $table->date('dob')->nullable();
             $table->string('phone', 10)->unique();
             $table->string('email', 100)->unique();
             $table->string('profile')->nullable();
+            $table->foreignId('role_id')->constrained()->onDelete('cascade');
+            $table->string('type', 15)->default('Full-Time');
             $table->string('status', 10)->default('Active');
             $table->timestamps();
             $table->string('is_deleted', 3)->default('No');

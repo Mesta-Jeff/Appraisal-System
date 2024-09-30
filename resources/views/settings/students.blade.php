@@ -1,11 +1,12 @@
 <!-- resources/views/student/dashboard.blade.php -->
 
 @extends('layout.main')
+{{-- @extends('layout.free') --}}
 
 @section('title', 'Students List')
 
 @section('content')
-
+{{--  --}}
 
 <div class="container-fluid">
 
@@ -65,9 +66,11 @@
                                     <th>DOB</th>
                                     <th>Gender</th>
                                     <th>Phone</th>
-                                    <th>Email</th>
-                                    <th>Level</th>
                                     <th>Programme</th>
+                                    <th>Completed</th>
+                                    <th>Level</th>
+                                    <th>Status</th>
+                                    <th>Email</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -147,8 +150,14 @@
                         <input type="text" id="address" name="email" class="form-control" />
                     </div>
                     <div class="mb-1">
+                        <label for="username" class="form-label">Select Department</label>
+                        <select class="form-control depts" id="depts">
+                            <option selected disabled>Choose...</option>
+                        </select>
+                    </div>
+                    <div class="mb-1">
                         <label for="username" class="form-label">Select Programme</label>
-                        <select class="select2 form-control" data-toggle="select2" id="programmes" name="programme_id">
+                        <select class="form-control programmes" id="programmes" name="programme_id">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
@@ -188,12 +197,12 @@
             <div class="modal-body">
                 <form class="px-3">
                     <div class="mb-1">
-                        <select class="select2 form-control" data-toggle="select2" id="dept">
+                        <select class="form-control depts" id="dept">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
                     <div class="mb-1">
-                        <select class="select2 form-control" data-toggle="select2" id="programme">
+                        <select class="form-control programmes" id="programme">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
@@ -346,24 +355,6 @@
             $('#my-modal').addClass('modal-blur').modal('show');
         })
 
-        //GET Prgorammes
-        $.ajax({
-            url: '{{ route("fetch-programmes") }}',
-            type: 'GET',
-            dataType: 'json',
-            success: function (data) {
-                var roleSelect = $('#programmes');
-                roleSelect.empty();
-                roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.programmes, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.programme + '</option>');
-                });
-                roleSelect.select2({ dropdownParent: roleSelect.parent() });
-            },
-            error: function (xhr, textStatus, errorThrown) {
-                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
-            }
-        });
 
         //GET DEPARTMENTS
         $.ajax({
@@ -371,20 +362,20 @@
             type: 'GET',
             dataType: 'json',
             success: function (data) {
-                var roleSelect = $('#dept');
+                var roleSelect = $('.depts');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
                 $.each(data.departments, function (key, value) {
                     roleSelect.append('<option value="' + value.id + '">' + value.department + '</option>');
                 });
-                roleSelect.select2({ dropdownParent: roleSelect.parent() });
+                roleSelect.select({ dropdownParent: roleSelect.parent() });
             },
             error: function (xhr, textStatus, errorThrown) {
                 console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
             }
         });
 
-        $('#dept').on('change', function(){
+        $('.depts').on('change', function(){
             department_id = $(this).val();
             $.ajax({
                 url: '{{ route("fetch-department-programmes") }}',
@@ -392,13 +383,13 @@
                 data: { department_id: department_id },
                 dataType: 'json',
                 success: function (data) {
-                    var roleSelect = $('#programme');
+                    var roleSelect = $('.programmes');
                     roleSelect.empty();
                     roleSelect.append('<option value="" selected disabled>Choose...</option>');
                     $.each(data['programmes'], function (key, value) {
                         roleSelect.append('<option value="' + value.id + '">' + value.programme + '</option>');
                     });
-                    roleSelect.select2({ dropdownParent: roleSelect.parent() });
+                    roleSelect.select({ dropdownParent: roleSelect.parent() });
                 },
                 error: function (xhr, textStatus, errorThrown) {
                     console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
@@ -561,6 +552,51 @@
             });
         });
 
+        // Enable or disable record
+        $('#example').on('click', '.state-btn', function () {
+            let Id = $(this).data('id');
+            let title = $(this).data('title');
+            let status = $(this).data('status');
+            let message = 'The status of: <span class="text-info"> ' + title +' </span> is currently:  <strong class="text-danger">' + status + '</strong> do you want to change it...?'
+            // SweetAlert confirmation dialogShow 
+            Swal.fire({
+                title: 'Confirm Action',
+                html: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3BAFDA',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Change!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route("bulk-status") }}',
+                        type: 'POST',
+                        data: { id: Id, table: 'students' },
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            
+                            if (response.status === 'success') {
+                                showSweetAlert('success', 'Success!', response.message);
+                            } else {
+                                showSweetAlert('error', 'Error!', response.message);
+                            }
+                            dataTable.ajax.reload();
+                        },
+                        error: function (xhr, status, error) {
+                            if (xhr.responseJSON && xhr.responseJSON.status === 'error') {
+                                showSweetAlert('error', 'Error!', xhr.responseJSON.message);
+                            } else {
+                                showSweetAlert('error', 'Error!', 'Request Failed: ' + status + ', ' + error);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
         // Promote Student
         $('#example').on('click', '.promote-btn', function () {
             let title = $(this).data('title');
@@ -645,12 +681,23 @@
                 { data: 'dob'},
                 { data: 'gender'},
                 { data: 'phone'},
-                { data: 'email', class: 'w-100'},
-                { data: 'class'},
                 { data: 'programme', class: 'w-100'},
                 {
-                    data: null, class: 'text-end',
+                    data: 'year_completed', class: 'text-center',
                     render: function(data, type, row) {
+                        return data ? data : 'Not Yet';
+                    }
+                },
+                { data: 'class'},
+                { data: 'status'},
+                { data: 'email', class: 'w-100'},
+                {
+                    data: null,
+                    class: 'text-end',
+                    render: function(data, type, row) {
+                        // Determine the text for the status button
+                        let statusText = (data.status === 'Active') ? 'Disable Student' : 'Enable Student';
+                        
                         return `
                             <div class="btn-group me-1">
                                 <button type="button" class="btn btn-sm btn-light dropdown-toggle waves-effect" data-bs-toggle="dropdown" aria-expanded="false">
@@ -658,13 +705,15 @@
                                     <i class="mdi mdi-chevron-down"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <a class="dropdown-item text-info edit-btn" href="javascript:void(0);" data-id="${data.id}" data-student_number="${data.student_number}" data-programme_id="${data.programme_id}" data-class_id="${data.class_id}" data-first_name="${data.first_name}" data-middle_name="${data.middle_name}" data-last_name="${data.last_name}" data-gender="${data.gender}" data-dob="${data.dob}" data-phone="${data.phone}" data-email="${data.email}" data-status="${data.status}">Edit Record</a>
+                                    <a class="dropdown-item text-info edit-btn" href="javascript:void(0);" data-id="${data.id}" data-student_number="${data.student_number}" data-programme_id="${data.programme_id}" data-class_id="${data.class_id}" data-first_name="${data.first_name}" data-middle_name="${data.middle_name}" data-last_name="${data.last_name}" data-gender="${data.gender}" data-dob="${data.dob}" data-phone="${data.phone}" data-email="${data.email}">Edit Record</a>
                                     <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);" data-id="${data.id}" data-title="${data.student_number}">Remove Student</a>
                                     <a class="dropdown-item promote-btn" href="javascript:void(0);" data-id="${data.id}" data-title="${data.student_number}">Promote Student</a>
+                                    <a class="dropdown-item state-btn" href="javascript:void(0);" data-id="${data.id}" data-title="${data.student_number}" data-status="${data.status}">${statusText}</a>
                                 </div>
                             </div>`;
                     }
                 }
+
             ],
             drawCallback: function() {
                 $(".dataTables_paginate > .pagination").addClass("pagination-rounded");
@@ -744,9 +793,8 @@
                             } else {
                                 showSweetAlert('error', 'Error!', response.message);
                             }
-                            counter = 0;
                             dataTable.ajax.reload();
-                            $('#bulk-remove').fadeOut();
+                            $('#bulk-remove, #bulk-promote').fadeOut();
                         },
                         error: function (xhr, status, error) {
                             if (xhr.responseJSON && xhr.responseJSON.status === 'error') {
@@ -1079,6 +1127,7 @@
                 success: function (response) {
                     dataTable.ajax.reload();
                     $('#promo-modal').modal('hide');
+                    $('#bulk-remove, #bulk-promote').fadeOut();
                     buttonElement.prop('disabled', false).text('Send Request').css('cursor', 'pointer');
                     if (response.status === 'success') {
                         showSweetAlert('success', 'Success!', response.message);
@@ -1103,7 +1152,6 @@
         function validateForm() {
             let studentNumber = $('#student_number').val();
             let firstName = $('#first_name').val();
-            let middleName = $('#middle_name').val();
             let lastName = $('#last_name').val();
             let gender = $('#gender').val();
             let dob = $('#dob').val();

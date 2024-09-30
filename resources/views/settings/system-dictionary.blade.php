@@ -2,7 +2,7 @@
 
 @extends('layout.main')
 
-@section('title', 'System Roles')
+@section('title', 'System Configuration')
 
 @section('content')
 
@@ -63,7 +63,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for ($i = 1; $i <= 15; $i++)
+                            @for ($i = 1; $i <= 1; $i++)
                                 <tr>
                                     <td>{{ $i }}</td>
                                     <td>Name {{ $i }}</td>

@@ -8,12 +8,6 @@ class AppraisalController extends Controller
 {
     //
 
-    public function studentQuestionaires(Request $request)
-    {
-        // Your logic here
-        return view('student-questionaires');
-    }
-
     public function availableStaff(Request $request)
     {
         return view('appraise.available-staff');

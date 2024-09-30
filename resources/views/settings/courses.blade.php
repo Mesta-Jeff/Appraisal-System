@@ -14,7 +14,7 @@
     <div class="row" style="margin-bottom: -15px;">
         <div class="col-12">
             <div class="page-title-box shadow-none" style="position: sticky; top: 0; background-color: transparent; z-index: 1000;">
-                
+                <small></small>
                 <div class="page-title-right">
                     <ol class="breadcrumb m-0">
                         <li class="breadcrumb-item"><a href="javascript: void(0);">{{ env('APP_ALIASE')}}</a></li>
@@ -110,10 +110,10 @@
 
                     <div class="mb-1">
                         <label for="types" class="form-label">Course Type</label>
-                        <select id="course-type" name="course-type" class="select2 form-control" data-toggle="select2">
+                        <select id="course-type" name="course-type" class="form-control">
                             <option selected disabled>Choose...</option>
-                            <option value="General">General Course</option>
                             <option value="Departmental">Departmental Course</option>
+                            <option value="General">General Course</option>                           
                             <option value="Faculty">Faculty Based Course</option>
                             <option value="Liberal">Liberal Course</option>
                         </select>
@@ -126,7 +126,7 @@
                         </select>
                     </div>
                     <div class="mb-1" id="accessors-2" style="display: none">
-                        <label for="types" class="form-label">Select Programmes that will offer this course</label>
+                        <label for="types" class="form-label">Select Departments that will offer this course</label>
                         <select id="programmes" name="programmes" class="select2 form-control select2-multiple" multiple="multiple" data-placeholder="Choose ..." data-toggle="select2"></select>
                     </div>
 
@@ -165,6 +165,7 @@
         var dataTable = "";
         var counter = 0;
 
+
         // Helper function to truncate text
         function truncateText(text, maxLength) {
             if (text.length > maxLength) {
@@ -181,22 +182,37 @@
             dataTable.ajax.reload();
         }
 
-        //GET programmeS FROM DB AND FILL ROLE
+        //GET programmeS FROM DB
         $.ajax({
             url: '{{ route("fetch-programmes") }}',
             type: 'GET',
             dataType: 'json',
             success: function (data) {
                 var roleSelect = $('#programme');
-                var roleSelect2 = $('#programmes');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
                 $.each(data.programmes, function (key, value) {
                     roleSelect.append('<option value="' + value.id + '">' + value.programme + '</option>');
-                    roleSelect2.append('<option value="' + value.id + '">' + value.programme + '</option>');
                 });
                 roleSelect.select2({ dropdownParent: roleSelect.parent() });
-                roleSelect2.select2({ dropdownParent: roleSelect2.parent() });
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+            }
+        }); 
+
+        //GET DEPARTMENTS IN FACULTY
+        $.ajax({
+            url: '{{ route("fetch-departmentsInfaculty") }}',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var roleSelect = $('#programmes');
+                roleSelect.empty();
+                $.each(data.departments, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.department+ '</option>');
+                });
+                roleSelect.select2({ dropdownParent: roleSelect.parent() });
             },
             error: function (xhr, textStatus, errorThrown) {
                 console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
@@ -217,7 +233,7 @@
         //CALLING THE MODAL TO ADD NEW RECORD
         $('#add-new-button').click( function()
         {
-            resetting();
+            // resetting();
             $('#description').text(null);
             $('#modal-title').text('Creating Course to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
@@ -351,14 +367,14 @@
             let accessorsArray = accessors.split(',');
 
             $.ajax({
-                url: '{{ route("fetch-programmes") }}',
+                url: '{{ route("fetch-departmentsInfaculty") }}',
                 type: 'GET',
                 dataType: 'json',
                 success: function (data) {
                     let htmls = '';
 
                     // Iterate through the fetched programmes and build HTML for matching accessors
-                    $.each(data.programmes, function (key, value) {
+                    $.each(data.departments, function (key, value) {
                         if (accessorsArray.includes(value.id.toString())) {
                             htmls += `
                             <hr style="margin-top: -5px; margin-bottom: 5px;"/>
@@ -366,15 +382,15 @@
                                 <div class="notify-icon text-primary" style="margin-bottom: 20px; margin-right: 10px;">
                                     <i class="mdi mdi-school"></i>
                                 </div>
-                                <p class="notify-details" style="font-size: 13px;">${value.programme}</p>
+                                <p class="notify-details" style="font-size: 13px; font-style: italic">${value.department}</p>
                             </div>`;
                         }
                     });
 
-                    if (htmls === '') {  htmls = '<p>No programs found for the selected accessors.</p>'; }
+                    if (htmls === '') {  htmls = '<p style="font-style: italic">No department found for the selected accessors.</p>'; }
 
                     Swal.fire({
-                        title: 'List of Progammes Taking This Course',
+                        title: 'List of Deparmtents Taking This Course',
                         html: htmls,
                         confirmButtonColor: '#3BAFDA',
                         confirmButtonText: 'Ok'
@@ -465,6 +481,11 @@
             });
         });
 
+        var sessionData = {
+            role: "{{ session('role') }}",
+            department: "{{ session('department') }}",
+            faculty: "{{ session('faculty') }}"
+        };
         //DATA TABLE SEETING UP
         dataTable = $("#example").DataTable(
         {
@@ -497,12 +518,20 @@
                         return truncateText(data, 20);
                     }
                 },
+                
                 {
                     data: null,
-                    render: function(data, type, row) {
+                    render: function (data, type, row) {
                         let viewAccessorsItem = '';
                         if (data.course_type === 'Faculty') {
                             viewAccessorsItem = `<a class="dropdown-item view-btn" href="javascript:void(0);" data-accessors="${data.accessors}">View Accessors</a>`;
+                        }
+
+                        // Check if the role is HOD or Officer and if the department matches
+                        let addControlButton = '';
+                        if (['hod', 'officer'].includes(data.role.toLowerCase()) && data.department_id == data.department || ['dean', 'administrator','developer', 'head qa'].includes(data.role.toLowerCase())) {
+                            addControlButton = `<a class="dropdown-item text-info edit-btn" href="javascript:void(0);" data-id="${data.id}" data-code="${data.course_code}" data-course-type="${data.course_type}" data-accessors="${data.accessors}" data-programme="${data.programme_id}" data-course="${data.course}" data-description="${data.description}">Modify Course</a>
+                                                <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);" data-id="${data.id}" data-title="${data.course}">Release Course</a>`;
                         }
 
                         return `
@@ -512,10 +541,9 @@
                                     <i class="mdi mdi-chevron-down"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <a class="dropdown-item text-info edit-btn" href="javascript:void(0);" data-id="${data.id}" data-code="${data.course_code}" data-course-type="${data.course_type}" data-accessors="${data.accessors}" data-programme="${data.programme_id}" data-course="${data.course}" data-description="${data.description}">Modify Course</a>
-                                    <a class="dropdown-item text-danger delete-btn" href="javascript:void(0);" data-id="${data.id}" data-title="${data.course}">Release Course</a>
+                                    <a class="dropdown-item" href="javascript:void(0);">Add Task</a>                         
                                     ${viewAccessorsItem}
-                                    <a class="dropdown-item" href="javascript:void(0);">Add Task</a>
+                                    ${addControlButton}
                                 </div>
                             </div>`;
                     }

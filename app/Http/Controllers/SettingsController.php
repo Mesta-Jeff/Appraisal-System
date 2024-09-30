@@ -22,28 +22,7 @@ use Illuminate\Support\Facades\Validator;
 class SettingsController extends Controller
 {
 
-    //todo: BULK ACTION
-    public function bulk_destroys(Request $request)
-    {
-        if ($request->ajax()) {
-            try {
-
-                $ids = $request->input('id');
-
-                $table = $request->input('table');
-                foreach ($ids as $id) {
-                    DB::table($table)->where('id', $id)->delete();
-                }
-    
-                return response()->json(['status' => 'success', 'message' => 'Records removed successfully']);
-            } catch (\Exception $e) {
-                Log::error('Exception during operation: ' . $e->getMessage());
-                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-            }
-        }
-        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
-    }
-
+    //todo: BULK ACTIONS
     public function bulk_destroy(Request $request)
     {
         if ($request->ajax()) {
@@ -63,22 +42,96 @@ class SettingsController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
 
+    // TODO: Bulk update the status
+    public function bulk_status(Request $request)
+    {
+        if ($request->ajax()) {
+            try {
+                $id = $request->input('id');
+                $table = $request->input('table');
+
+                // Fetch the current status for the specified ID
+                $currentStatus = DB::table($table)->where('id', $id)->value('status');
+                $newStatus = ($currentStatus === 'Active') ? 'InActive' : 'Active';
+                DB::table($table)->where('id', $id)->update(['status' => $newStatus]);
+
+                return response()->json(['status' => 'success', 'message' => 'Status has been successfully changed']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'An error occurred while changing the status of the record'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
+
+
+    // Todo: Bulk mount courses
+    public function bulk_mount(Request $request)
+    {
+        if ($request->ajax()) {
+            try {
+                $id = $request->input('id');
+                $table = $request->input('table');
+
+                DB::table($table)->whereIn('id', $id)->update(['status' => 'Mounted']);
+
+                return response()->json(['status' => 'success', 'message' => 'Course Mounted successfully']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'An error occurred while changing the status of the record'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
+
+
 
 
     //TODO: ANYTHING ABOUT ROLE
     public function roles(Request $request)
     {
         if ($request->ajax()) {
-            $roles = Role::orderBy('id', 'desc')->where('is_deleted','No')->get();
+            $roles = Role::orderBy('id', 'desc')
+                ->where('is_deleted', 'No')
+                ->whereRaw('LOWER(role) != ?', ['developer'])
+                ->get();
+
             return response()->json(['status' => 'success', 'roles' => $roles]);
         }
+
         return view('settings.roles');
     }
+
     public function fetch_roles(Request $request)
     {
-        $sortroles = DB::table('roles')->where('is_deleted', 'No')->orderBy('role', 'asc')->select('role', 'id')->get();
-        return response()->json(['sortroles' => $sortroles]);
+        // Priority order of roles
+        $rolePriority = [
+            'Developer' => 1,
+            'Head QA' => 2,
+            'Dean' => 3,
+            'Administrator' => 4,
+            'HOD' => 5,
+            'Officer' => 6,
+            'Lecturer' => 7,
+            'Student' => 8
+        ];
+
+        // Get the current role from the session
+        $currentRole = $request->session()->get('role');
+        $currentRolePriority = isset($rolePriority[$currentRole]) ? $rolePriority[$currentRole] : 9;
+        $filteredRoles = DB::table('roles')
+            ->where('is_deleted', 'No')
+            ->orderBy('role', 'asc')
+            ->select('role', 'id')
+            ->get()
+            ->filter(function ($role) use ($rolePriority, $currentRolePriority) {
+                return isset($rolePriority[$role->role]) && $rolePriority[$role->role] >= $currentRolePriority;
+            });
+
+        return response()->json(['roles' => $filteredRoles]);
     }
+
+    
     public function addRole(Request $request)
     {
         if (!$request->ajax()) {
@@ -99,7 +152,7 @@ class SettingsController extends Controller
             }
 
             // Check if the role already exists
-            $existingRole = Role::where('role', $request->input('role'))->first();
+            $existingRole = Role::where('role', $request->input('role'))->where('is_deleted','No')->first();
             if ($existingRole) {
                 return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
             }
@@ -157,7 +210,6 @@ class SettingsController extends Controller
         }
     }
 
-    
     public function destroyRole(Request $request)
     {
         if ($request->ajax()) {
@@ -218,7 +270,7 @@ class SettingsController extends Controller
             }
 
             // Check if the record already exists
-            $existingPermission = Permission ::where('permission', $request->input('permission'))->first();
+            $existingPermission = Permission ::where('permission', $request->input('permission'))->where('is_deleted','No')->first();
             if ($existingPermission) {
                 return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
             }
@@ -312,11 +364,51 @@ class SettingsController extends Controller
         }
         return view('settings.departments');
     }
+
     public function fetch_departments(Request $request)
     {
-        $departments = DB::table('departments')->where('is_deleted', 'No')->orderBy('department', 'asc')->select('department', 'id')->get();
+        // Get the current role and necessary session details
+        $currentRole = $request->session()->get('role');
+        $departmentId = $request->session()->get('department');
+        $facultyId = $request->session()->get('faculty');
+
+        // Initialize the query
+        $query = DB::table('departments')->where('is_deleted', 'No');
+
+        // Apply role-based filtering
+        if (in_array($currentRole, ['HOD', 'Officer'])) {
+            $query->where('id', $departmentId); 
+        } elseif (in_array($currentRole, ['Dean', 'Administrator'])) {
+            $query->where('faculty_id', $facultyId); 
+        }
+
+        // Execute the query and get the results
+        $departments = $query->orderBy('department', 'asc')->select('department', 'id')->get();
+
         return response()->json(['departments' => $departments]);
     }
+
+    public function fetch_departmentInfaculty(Request $request)
+    {
+        // Get the current role and necessary session details
+        $currentRole = $request->session()->get('role');
+        $departmentId = $request->session()->get('department');
+        $facultyId = $request->session()->get('faculty');
+
+        // Initialize the query
+        $query = DB::table('departments')->where('is_deleted', 'No');
+
+        // Apply role-based filtering
+        if (in_array($currentRole, ['Dean', 'Administrator', 'HOD', 'Officer'])) {
+            $query->where('faculty_id', $facultyId); 
+        }
+
+        // Execute the query and get the results
+        $departments = $query->orderBy('department', 'asc')->select('department', 'id')->get();
+
+        return response()->json(['departments' => $departments]);
+    }
+
     public function addDepartment(Request $request)
     {
         if (!$request->ajax()) {
@@ -337,7 +429,7 @@ class SettingsController extends Controller
             }
 
             // Check if already exists
-            $existingDepartment = Department::where('department', $request->input('department'))->first();
+            $existingDepartment = Department::where('department', $request->input('department'))->where('is_deleted','No')->first();
             if ($existingDepartment) {
                 return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
             }
@@ -414,12 +506,22 @@ class SettingsController extends Controller
     public function programmes(Request $request)
     {
         if ($request->ajax()) {
+            $currentRole = $request->session()->get('role');
+            $departmentId = $request->session()->get('department');
+            $facultyId = $request->session()->get('faculty');
+
             $programmes = Programme::join('programmes as f', 'd.id', '=', 'f.department_id')
                 ->select('f.id', 'f.department_id', 'f.programme', 'd.department', 'f.description', 'f.duration')
                 ->from('departments as d')
+                // Apply role-based filtering
+            ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                return $query->where('d.id', $departmentId);
+            })
+            ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                return $query->where('d.faculty_id', $facultyId);
+            })
                 ->orderBy('d.id', 'desc')
-                ->where('f.is_deleted', 'No')
-                ->get();
+                ->where('f.is_deleted', 'No')->get();
             return response()->json(['status' => 'success', 'programmes' => $programmes]);
         }
         return view('settings.programme');
@@ -446,7 +548,7 @@ class SettingsController extends Controller
             }
 
             // Check if already exists
-            $existingDepartment = Programme::where('programme', $request->input('programme'))->first();
+            $existingDepartment = Programme::where('programme', $request->input('programme'))->where('is_deleted','No')->first();
             if ($existingDepartment) {
                 return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
             }
@@ -526,7 +628,23 @@ class SettingsController extends Controller
 
     public function fetchProgrammes(Request $request)
     {
-        $programmes = DB::table('programmes')->where('is_deleted', 'No')->orderBy('programme', 'asc')->select('programme', 'id')->get();
+        // Get the current role and necessary session details
+        $currentRole = $request->session()->get('role');
+        $departmentId = $request->session()->get('department');
+        $facultyId = $request->session()->get('faculty');
+
+        $programmes = DB::table('programmes as p')
+            ->join('departments as d', 'p.department_id', '=', 'd.id')
+            ->where('p.is_deleted', 'No')
+            // Apply role-based filtering
+            ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                return $query->where('d.id', $departmentId);
+            })
+            ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                return $query->where('d.faculty_id', $facultyId);
+            })
+            ->select('p.programme', 'p.id')->orderBy('p.programme', 'asc')->get();
+
         return response()->json(['programmes' => $programmes]);
     }
 
@@ -568,7 +686,7 @@ class SettingsController extends Controller
             $data = $validator->validated();
 
             // Check if already exists
-            $existingFaculty = Semester::where('semester', $request->input('semester'))->first();
+            $existingFaculty = Semester::where('semester', $request->input('semester'))->where('is_deleted','No')->first();
             if ($existingFaculty) {
                 return response()->json(['status' => 'error', 'message' => 'Same semester has been created already, try again with different record'], 422);
             }
@@ -678,16 +796,16 @@ class SettingsController extends Controller
             // Get validated data
             $data = $validator->validated();
             // Check if already exists
-            $existingSession = Sessions::where('name', $request->input('name'))->first();
+            $existingSession = Sessions::where('name', $request->input('name'))->where('is_deleted','No')->first();
             if ($existingSession) {
-                return response()->json(['status' => 'error', 'message' => 'Similar Session has been mounted already, unmount it before you can mount this session'], 422);
+                return response()->json(['status' => 'error', 'message' => 'Similar Academic year has is on already, unmount it before you can mount this academic year'], 422);
             }
     
             // Save the record with validated fields
             $instance = Sessions::create($data);
     
             if ($instance) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, session mounted']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, academic year mounted']);
             }
     
             return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, session could not be mounted'], 500);
@@ -753,7 +871,15 @@ class SettingsController extends Controller
 
     public function fetchSessions(Request $request)
     {
-        $sessions = DB::table('sessions')->where('is_deleted', 'No')->orderBy('begins', 'asc')->select('name', 'id')->limit(1)->get();
+        $now = now();
+        $threeMonthsFromNow = $now->addMonths(3);
+
+        $sessions = DB::table('sessions')
+        ->where('is_deleted', 'No')
+        ->where('status', 'Active')
+        ->where('begins', '<=', $threeMonthsFromNow)
+        ->orderBy('begins', 'asc')->select('name', 'id')->limit(1)->get();
+
         return response()->json(['sessions' => $sessions]);
     }
 
@@ -822,14 +948,14 @@ class SettingsController extends Controller
             }
 
             // Check if a similar record already exists
-            $existingSemester = SessionSemester::where('semester_id', $data['semester_id'])->where('begins', $data['begins'])->first();
+            $existingSemester = SessionSemester::where('semester_id', $data['semester_id'])->where('begins', $data['begins'])->where('is_deleted','No')->first();
 
             if ($existingSemester) {
                 return response()->json(['status' => 'error', 'message' => 'Semester has been created already, no need to recreate'], 422);
             }
 
             // Check if there are ongoing semesters that haven't ended
-            $currentSemester = SessionSemester::where('session_id', $data['session_id'])->where('ends', '>', now())->orderBy('ends', 'desc')->first();
+            $currentSemester = SessionSemester::where('session_id', $data['session_id'])->where('ends', '>', now())->orderBy('ends', 'desc')->where('is_deleted','No')->first();
 
             if ($currentSemester) {
                 $currentSemesterEnds = Carbon::parse($currentSemester->ends);
@@ -921,18 +1047,35 @@ class SettingsController extends Controller
     public function sessionCourse(Request $request)
     {
         if ($request->ajax()) {
+
+            $currentRole = $request->session()->get('role');
+            $departmentId = $request->session()->get('department');
+            $facultyId = $request->session()->get('faculty');
+
             $sessionCourses = SessionCourses::select(
-                DB::raw('p.programme, l.class, c.course, c.course_code, s.semester, sc.status')
+                DB::raw('p.programme, l.class, c.course, c.course_code, s.semester, sc.status, sc.id')
             )
-            ->join('session_semesters as ss', 'ss.id', '=', 'sc.session_semester_id')->join('courses as c', 'c.id', '=', 'sc.course_id')
-            ->join('classes as l', 'l.id', '=', 'sc.classes_id')->join('programmes as p', 'p.id', '=', 'sc.programme_id')
-            ->join('semesters as s', 's.id', '=', 'ss.semester_id')->from('session_courses as sc')->where('sc.is_deleted', 'No')
+            ->join('session_semesters as ss', 'ss.id', '=', 'sc.session_semester_id')
+            ->join('courses as c', 'c.id', '=', 'sc.course_id')
+            ->join('classes as l', 'l.id', '=', 'sc.classes_id')
+            ->join('programmes as p', 'p.id', '=', 'sc.programme_id')
+            ->join('semesters as s', 's.id', '=', 'ss.semester_id')
+            ->leftJoin('departments as d', 'p.department_id', '=', 'd.id')
+            ->from('session_courses as sc')
+            ->where('sc.is_deleted', 'No')
+            ->where('sc.status', '!=', 'InActive')
+            ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                return $query->where('d.id', $departmentId);
+            })
+            ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                return $query->where('d.faculty_id', $facultyId);
+            })
             ->orderBy('l.class', 'ASC')->orderBy('c.course', 'ASC')->get();
 
             return response()->json(['status' => 'success', 'sessionCourses' => $sessionCourses]);
         }
 
-        return view('settings/session-course');
+        return view('settings.session-course');
     }
 
     public function addSessionCourse(Request $request)
@@ -972,7 +1115,7 @@ class SettingsController extends Controller
 
                 // Check if the course is already mounted
                 $existingCourse = SessionCourses::where('course_id', $courseId)
-                    ->where('session_semester_id', $data['semester'])->where('classes_id', $data['level'])->where('programme_id', $data['programme'])->where('status', 'Mounted')->first();
+                    ->where('session_semester_id', $data['semester'])->where('classes_id', $data['level'])->where('programme_id', $data['programme'])->where('status', 'Mounted')->where('is_deleted','No')->first();
 
                 if ($existingCourse) {
                     return response()->json(['status' => 'error', 'message' => 'Course has been already mounted for this this semester'], 422);
@@ -989,21 +1132,77 @@ class SettingsController extends Controller
         }
     }
 
-    public function updateSessionCourse(Request $request)
+    public function unmount_course(Request $request)
     {
-        // Logic to update a session-course
-    }
+        if ($request->ajax()) {
+            $request->validate(['id' => 'required|exists:session_courses,id',]);
 
-    public function destroySessionCourse(Request $request)
-    {
-        // Logic to delete a session-course
+            try {
+                SessionCourses::where('id', $request->id)->update(['status' => 'Unmounted']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, record removed']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
+            }
+        }
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
 
     public function fetchSessionCourses(Request $request)
     {
-        // Logic to fetch session-courses
+        if ($request->ajax()) {
+
+            $currentRole = $request->session()->get('role');
+            $departmentId = $request->session()->get('department');
+            $facultyId = $request->session()->get('faculty');
+
+            $courses = DB::table('courses as c')
+                ->select('sc.id', 'c.course')
+                ->join('programmes as p', 'c.programme_id', '=', 'p.id') 
+                ->join('departments as d', 'p.department_id', '=', 'd.id')
+                ->join('session_courses as sc', 'c.id', '=', 'sc.course_id')
+                
+                // Filter only when the course type is departmental for HOD and Officer
+               
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where(function ($query) use ($departmentId) {
+                        $query->where('d.id', $departmentId)->whereRaw('LOWER(c.course_type) = ?', ['departmental']);
+                    });
+                })
+                ->orWhereRaw('LOWER(c.course_type) != ?', ['departmental'])
+                ->orWhere(function ($query) use ($departmentId) {
+                    $query->where('d.id', '!=', $departmentId);
+                })
+                
+                // Leave the Dean and Administrator logic unchanged
+                ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                    return $query->where('d.faculty_id', $facultyId);
+                })
+
+                // Add logic for 'faculty' course type to check if the programme belongs to the session's department
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where(function ($query) use ($departmentId) {
+                        $query->whereRaw('LOWER(c.course_type) = ?', ['faculty'])->whereRaw('FIND_IN_SET(?, c.accessors)', [$departmentId]);
+                    });
+                })
+                
+                ->where('c.programme_id', $request->input('programme_id'))
+                ->where('c.is_deleted', 'No')
+                ->where('p.is_deleted', 'No')
+                ->where('d.is_deleted', 'No')
+                ->where('sc.status', '!=', 'InActive')
+                ->where('sc.is_deleted', 'No')
+                ->orderBy('c.id', 'desc')
+                ->get();
+        //    Log::info('Courses Data:', ['courses' => $courses->toArray()]);
+
+            return response()->json(['status' => 'success', 'courses' => $courses]);
+        }
+
     }
 
+
+    
 
 
     //TODO: FACULTY INFORMATIONNS AND ACTIONS
@@ -1039,7 +1238,7 @@ class SettingsController extends Controller
             }
 
             // Check if already exists
-            $existingFaculty = Faculty::where('faculty', $request->input('faculty'))->first();
+            $existingFaculty = Faculty::where('faculty', $request->input('faculty'))->where('is_deleted','No')->first();
             if ($existingFaculty) {
                 return response()->json(['status' => 'error', 'message' => 'Record already exists, try again with different record'], 422);
             }
@@ -1129,7 +1328,7 @@ class SettingsController extends Controller
         try {
             // Validate the input
             $validator = Validator::make($request->all(), [
-                'classes' => 'required|string',
+                'classes' => 'required|string"',
             ]);
 
             // If validation fails, return JSON response with validation errors
@@ -1138,7 +1337,7 @@ class SettingsController extends Controller
             }
 
             // Check if already exists
-            $existingClass = Classes::where('class', $request->input('classes'))->first();
+            $existingClass = Classes::where('class', $request->input('classes'))->where('is_deleted','No')->first();
                 if ($existingClass) {
                     return response()->json(['status' => 'error', 'message' => 'Class already exists, try again with different record'], 422);
                 }
@@ -1215,17 +1414,65 @@ class SettingsController extends Controller
     public function courses(Request $request)
     {
         if ($request->ajax()) {
-            $courses = Course::join('programmes as d', 'd.id', '=', 'c.programme_id')
-                ->select('c.id', 'c.programme_id', 'd.programme', 'c.course', 'c.course_code', 'c.course_type', 'c.description', 'c.accessors')
-                ->from('courses as c')
+
+            $currentRole = $request->session()->get('role');
+            $departmentId = $request->session()->get('department');
+            $facultyId = $request->session()->get('faculty');
+
+            $courses = DB::table('courses as c')
+                ->select('c.id', 'c.programme_id','p.department_id', 'p.programme', 'c.course', 'c.course_code', 'c.course_type', 'c.description', 'c.accessors')
+                ->join('programmes as p', 'c.programme_id', '=', 'p.id') 
+                ->join('departments as d', 'p.department_id', '=', 'd.id')
+                
+                // Filter only when the course type is departmental for HOD and Officer
+               
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where(function ($query) use ($departmentId) {
+                        $query->where('d.id', $departmentId)
+                            ->whereRaw('LOWER(c.course_type) = ?', ['departmental']);
+                    });
+                })
+                ->orWhereRaw('LOWER(c.course_type) != ?', ['departmental'])
+                ->orWhere(function ($query) use ($departmentId) {
+                    $query->where('d.id', '!=', $departmentId);
+                })
+                
+                // Leave the Dean and Administrator logic unchanged
+                ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                    return $query->where('d.faculty_id', $facultyId);
+                })
+
+                // Add logic for 'faculty' course type to check if the programme belongs to the session's department
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where(function ($query) use ($departmentId) {
+                        $query->whereRaw('LOWER(c.course_type) = ?', ['faculty'])
+                            // Check if the department_id exists in the comma-separated accessors string
+                            ->whereRaw('FIND_IN_SET(?, c.accessors)', [$departmentId]);
+                    });
+                })
+                
                 ->where('c.is_deleted', 'No')
+                ->where('p.is_deleted', 'No')
+                ->where('d.is_deleted', 'No')
                 ->orderBy('c.id', 'desc')
                 ->get();
+
+            // Append session values to each course item
+            $courses = $courses->map(function ($course) use ($currentRole, $departmentId, $facultyId) {
+                $course->role = $currentRole;
+                $course->department = $departmentId;
+                $course->faculty = $facultyId;
+                return $course;
+            });
+
+        //    Log::info('Courses Data:', ['courses' => $courses->toArray()]);
+
             return response()->json(['status' => 'success', 'courses' => $courses]);
         }
+
         return view('settings.courses');
     }
-    
+
     public function addCourse(Request $request)
     {
         if (!$request->ajax()) {
@@ -1250,8 +1497,7 @@ class SettingsController extends Controller
 
             // Check if already exists
             $existingCourse = Course::where('course', $request->input('course'))
-                ->where('course_code', $request->input('course-code'))
-                ->first();
+                ->where('course_code', $request->input('course-code'))->where('is_deleted','No')->first();
             if ($existingCourse) {
                 return response()->json(['status' => 'error', 'message' => 'Course already exists, try again with a different course code'], 422);
             }
@@ -1348,24 +1594,120 @@ class SettingsController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
     }
 
-    // 
+    // TODO: FETCH COURSE BASE ON PRogramme
     public function fetchProgrammeCourses(Request $request)
     {
-        $courses = DB::table('courses')->where('is_deleted', 'No')->where('programme_id', $request->input('programme_id'))->orderBy('course', 'asc')->select('course', 'id')->get();
-        return response()->json(['courses' => $courses]);
+        if ($request->ajax()) {
+
+            $currentRole = $request->session()->get('role');
+            $departmentId = $request->session()->get('department');
+            $facultyId = $request->session()->get('faculty');
+
+            $courses = DB::table('courses as c')
+                ->select('c.id', 'c.course')
+                ->join('programmes as p', 'c.programme_id', '=', 'p.id') 
+                ->join('departments as d', 'p.department_id', '=', 'd.id')
+                
+                // Filter only when the course type is departmental for HOD and Officer
+               
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where(function ($query) use ($departmentId) {
+                        $query->where('d.id', $departmentId)
+                            ->whereRaw('LOWER(c.course_type) = ?', ['departmental']);
+                    });
+                })
+                ->orWhereRaw('LOWER(c.course_type) != ?', ['departmental'])
+                ->orWhere(function ($query) use ($departmentId) {
+                    $query->where('d.id', '!=', $departmentId);
+                })
+                
+                // Leave the Dean and Administrator logic unchanged
+                ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                    return $query->where('d.faculty_id', $facultyId);
+                })
+
+                // Add logic for 'faculty' course type to check if the programme belongs to the session's department
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where(function ($query) use ($departmentId) {
+                        $query->whereRaw('LOWER(c.course_type) = ?', ['faculty'])
+                            // Check if the department_id exists in the comma-separated accessors string
+                            ->whereRaw('FIND_IN_SET(?, c.accessors)', [$departmentId]);
+                    });
+                })
+                
+
+                ->where('c.programme_id', $request->input('programme_id'))
+                ->where('c.is_deleted', 'No')
+                ->where('p.is_deleted', 'No')
+                ->where('d.is_deleted', 'No')
+                ->orderBy('c.id', 'desc')
+                ->get();
+
+            //    Log::info('Courses Data:', ['courses' => $courses->toArray()]);
+
+            return response()->json(['status' => 'success', 'courses' => $courses]);
+        }
     }
+
+
+    public function lecturerCourses(Request $request)
+    {
+        // Your logic here
+        return view('settings.lecturerCourse');
+    }
+
+    //assignCourses
+    public function assignCourses(Request $request)
+    {
+        // Your logic here
+       
+        if (!$request->ajax()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        try {
+            // Validate the input
+            $validator = Validator::make($request->all(), [
+                'course' => 'required|int',
+                'lecturer' => 'required|int',
+                'description' => 'required|string',
+            ]);
+
+            // If validation fails, return JSON response with validation errors
+            if ($validator->fails()) {
+                 return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
+            }
+
+            // Check if already exists
+            $existingClass = LecturerCourses::where('class', $request->input('classes'))->where('is_deleted','No')->first();
+                if ($existingClass) {
+                    return response()->json(['status' => 'error', 'message' => 'Class already exists, try again with different record'], 422);
+                }
+
+            // Save the record with validated fields
+            $instance = Classes::create([
+                'class' => $validator->validated()['classes'],
+            ]);
+
+            if ($instance->save()) {
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, class created']);
+            }
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
+        } catch (\Exception $e) {
+            Log::error('Exception during operation: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+        
+    }
+
+
+
 
 
     public function systemDictionary(Request $request)
     {
         // Your logic here
         return view('settings.system-dictionary');
-    }
-
-    public function AppraisalConnfig(Request $request)
-    {
-        // Your logic here
-        return view('settings.appraisal-configuring');
     }
 
 

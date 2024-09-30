@@ -14,13 +14,16 @@ class Lecturer extends Model
         'initials',
         'department_id',
         'first_name',
+        'middle_name',
         'last_name',
         'gender',
         'dob',
         'phone',
         'email',
         'profile',
-        'status'
+        'status',
+        'type',
+        'role_id'
     ];
 
     protected $hidden = [

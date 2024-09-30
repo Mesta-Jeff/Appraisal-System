@@ -2,7 +2,7 @@
 
 @extends('layout.main')
 
-@section('title', 'Academic Year Course')
+@section('title', 'Lecturers & Courses')
 
 @section('content')
 
@@ -31,13 +31,13 @@
                 <div class="card-body" style="margin: -10px 0  -10px 0;">
                     <div class="row">
                         <div class="col-lg-6 col-sm-4 d-flex gap-2">
-                            <h4 class="page-title">Current @yield('title')</h4>
-                            <button class="btn btn-info btn-sm" type="button" id="bulk-mount" style="display: none" > Mount</button>
+                            <h4 class="page-title">@yield('title')</h4>
+                            <button class="btn btn-danger" type="button" id="bulk-remove" style="display: none" > Remove</button>
                         </div>
                         <div class="col-lg-6 col-sm-8">
                             <div class="d-flex gap-2 justify-content-lg-end mt-3 mt-lg-0">
                                 <button type="button" id="btnref" class="btn btn-secondary"><i class="mdi mdi-atom-variant spin"></i> Reload</button>
-                                <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Mount New</button>
+                                <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Assign New</button>
                             </div>
                         </div>
                     </div>
@@ -58,7 +58,6 @@
                         <table id="example" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
                             <thead>
                                 <tr class="text-uppercase">
-                                    <th><input type="checkbox" id="selectAllCheckboxes"/></th>
                                     <th>Programme</th>
                                     <th>Level</th>
                                     <th>Course</th>
@@ -96,34 +95,21 @@
             </div>
             <div class="modal-body">
                 <form class="px-3" id="my-form">
-                    <input type="hidden" id="gottenId" name="id">
                     <div class="mb-1">
-                        <label for="username" class="form-label">Select Academic Year</label>
-                        <select id="sessions" name="sessions" class="select2 form-control" data-toggle="select2">
-                            <option selected disabled>Choose...</option>
-                        </select>
-                    </div>
-                    <div class="mb-1">
-                        <label for="username" class="form-label">What semester...?</label>
-                        <select id="semester" name="semester" class="select2 form-control" data-toggle="select2">
-                            <option selected disabled>Choose...</option>
-                        </select>
-                    </div>
-                    <div class="mb-1">
-                        <label for="username" class="form-label">Which level...?</label>
-                        <select id="level" name="level" class="select2 form-control" data-toggle="select2">
-                            <option selected disabled>Choose...</option>
-                        </select>
-                    </div>
-                    <div class="mb-1">
-                        <label for="username" class="form-label">Which programme are you mounting to...?</label>
+                        <label for="username" class="form-label">Select Programme</label>
                         <select id="programme" name="programme" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
                     <div class="mb-1">
-                        <label for="username" class="form-label">Select all Courses you want to mount</label>
-                        <select id="course" name="course[]" class="select2 form-control select2-multiple" multiple="multiple" data-placeholder="Choose ..." data-toggle="select2"></select>
+                        <label for="username" class="form-label">Select all Courses you want to assign</label>
+                        <select id="course" name="course" class="select2 form-control" data-placeholder="Choose ..." data-toggle="select2"></select>
+                    </div>
+                    <div class="mb-1">
+                        <label for="lecturer" class="form-label">Select Lecturer</label>
+                        <select id="lecturer" name="lecturer" class="select2 form-control" data-toggle="select2">
+                            <option selected disabled>Choose...</option>
+                        </select>
                     </div>
                    
                    
@@ -160,17 +146,17 @@
         var dataTable = "";
         var counter = 0;
 
-        //GET SESSIONS
+        //GET Lecturers
         $.ajax({
-            url: '{{ route("fetch-sessions") }}',
+            url: '{{ route("staff") }}',
             type: 'GET',
             dataType: 'json',
             success: function (data) {
-                var roleSelect = $('#sessions');
+                var roleSelect = $('#lecturer');
                 roleSelect.empty();
                 roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.sessions, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.name + '</option>');
+                $.each(data.staffs, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.title + " " + value.first_name + " " +  value.middle_name + " " + value.last_name + '</option>');
                 });
                 roleSelect.select2({ dropdownParent: roleSelect.parent() });
             },
@@ -202,24 +188,6 @@
             }); 
         });
 
-        // GET LEVELS
-        $.ajax({
-            url: '{{ route("fetch-levels") }}',
-            type: 'GET',
-            dataType: 'json',
-            success: function (data) {
-                var roleSelect = $('#level');
-                roleSelect.empty();
-                roleSelect.append('<option value="" selected disabled>Choose...</option>');
-                $.each(data.levels, function (key, value) {
-                    roleSelect.append('<option value="' + value.id + '">' + value.class + '</option>');
-                });
-                roleSelect.select2({ dropdownParent: roleSelect.parent() });
-            },
-            error: function (xhr, textStatus, errorThrown) {
-                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
-            }
-        }); 
 
         // GET PROGRAMMES
         $.ajax({
@@ -244,7 +212,7 @@
         $('#programme').on('change', function(){
             programme_id = $(this).val();
             $.ajax({
-                url: '{{ route("fetch-programme-courses") }}',
+                url: '{{ route("fetch-session-courses") }}',
                 type: 'GET',
                 data: { programme_id: programme_id },
                 dataType: 'json',
@@ -288,7 +256,7 @@
             buttonElement.html('<i class="fa fa-spinner fa-spin"></i> Please wait... ').attr('disabled', true);
 
             $.ajax({
-                url: '{{ route('addSessionCourse') }}',
+                url: "{{ route('assign.courses') }}",
                 type: 'POST',
                 data: formData,
                 headers: {
@@ -322,12 +290,10 @@
 
         //VALIDATE FORM
         function validateForm() {
-            let programme = $('#programme').val();
-            let level = $('#level').val();
+            let lecturer= $('#lecturer').val();
             let course = $('#course').val();
-            let semester = $('#semester').val();
 
-            return programme && level && course && semester;
+            return  lecturer && course ;
         }
 
         // Function to show SweetAlert message
@@ -335,15 +301,11 @@
             Swal.fire({ icon: icon, title: title, text: text, });
         }
 
-
-        //Unmount courses
-        $('#example').on('click', '.mount-btn', function () {
-            let Id = $(this).data('id'); 
-            let title = $(this).data('title');         
-            let selectedIds = [Id]; 
-            // Confirmation message
-            let message = 'Are you sure you want to mount this course <span class="text-info"> ' + title +'</span>';
-
+        //DELETE THE DATA
+        $('#example').on('click', '.delete-btn', function () {
+            let Id = $(this).data('id');
+            let title = $(this).data('title');
+            let message = 'Are you sure you want to remove: <span class="text-danger"> ' + title +'</span>'
             // Show SweetAlert confirmation dialog
             Swal.fire({
                 title: 'Confirm Action',
@@ -352,24 +314,24 @@
                 showCancelButton: true,
                 confirmButtonColor: '#3BAFDA',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, mount it!'
+                confirmButtonText: 'Yes, remove it!'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '{{ route("bulk-mount") }}',
+                        url: '{{ route("destroyDepartment") }}',
                         type: 'POST',
-                        data: { id: selectedIds, table: 'session_courses' },
+                        data: { id: Id },
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
+                            
                             if (response.status === 'success') {
                                 showSweetAlert('success', 'Success!', response.message);
                             } else {
                                 showSweetAlert('error', 'Error!', response.message);
                             }
-
-                            // Reload the DataTable
+                            var counter = 1;
                             dataTable.ajax.reload();
                         },
                         error: function (xhr, status, error) {
@@ -383,54 +345,6 @@
                 }
             });
         });
-
-        //Unmount courses
-        $('#example').on('click', '.unmount-btn', function () {
-            let Id = $(this).data('id'); 
-            let title = $(this).data('title');         
-            // Confirmation message
-            let message = 'Are you sure you want to unmount this course <span class="text-info"> ' + title +'</span>';
-
-            // Show SweetAlert confirmation dialog
-            Swal.fire({
-                title: 'Confirm Action',
-                html: message,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3BAFDA',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, unmount it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '{{ route("course.unmount") }}',
-                        type: 'POST',
-                        data: { id: Id},
-                        headers: {
-                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                        },
-                        success: function(response) {
-                            if (response.status === 'success') {
-                                showSweetAlert('success', 'Success!', response.message);
-                            } else {
-                                showSweetAlert('error', 'Error!', response.message);
-                            }
-
-                            // Reload the DataTable
-                            dataTable.ajax.reload();
-                        },
-                        error: function (xhr, status, error) {
-                            if (xhr.responseJSON && xhr.responseJSON.status === 'error') {
-                                showSweetAlert('error', 'Error!', xhr.responseJSON.message);
-                            } else {
-                                showSweetAlert('error', 'Error!', 'Request Failed: ' + status + ', ' + error);
-                            }
-                        }
-                    });
-                }
-            });
-        });
-
 
         // Helper function to truncate text
         function truncateText(text, maxLength) {
@@ -452,12 +366,6 @@
             },
             columns: [
                 {
-                    data: null,
-                    render: function (data, type, row) {
-                        return '<input type="checkbox" class="select-checkbox" data-id="' + data.id + '" data-title="' + data.course + '"/>';
-                    },
-                },
-                {
                     data: 'programme',
                     render: function(data, type, row) {
                         return truncateText(data, 20);
@@ -477,9 +385,9 @@
                     data: null,
                     render: function(data, type, row) {
                         if (data.status === 'Unmounted') {
-                            return '<button class="btn btn-info btn-sm mount-btn" data-id="' + data.id + '" data-title="' + data.course + '">Mount</button>';
+                            return '<button class="btn btn-info btn-sm mount-btn" data-id="' + data.id + '" data-title="' + data.department + '">Mount</button>';
                         } else {
-                            return '<button class="btn btn-danger btn-sm unmount-btn" data-id="' + data.id + '" data-title="' + data.course + '">Unmount</button>';
+                            return '<button class="btn btn-danger btn-sm unmount-btn" data-id="' + data.id + '" data-title="' + data.department + '">Unmount</button>';
                         }
                     }
                 }
@@ -501,14 +409,6 @@
                     next: "<i class='mdi mdi-chevron-right'>"
                 }
             },
-            initComplete: function (settings, json) {
-                dataTable.buttons().container().appendTo("#example_wrapper .col-md-6:eq(0)");
-                $('#selectAllCheckboxes').on('change', function () {
-                    let isChecked = $(this).prop('checked');
-                    $('.select-checkbox').prop('checked', $(this).prop('checked'));
-                    $('#bulk-mount').toggle(isChecked);
-                });
-            }
         });
 
         //TO REFRESH THE Page
@@ -517,77 +417,6 @@
             // window.location.reload();
         })
 
-        // Event listener for checkbox change
-        $('#example tbody').on('change', '.select-checkbox', function () {
-            var anyCheckboxChecked = $('.select-checkbox:checked').length > 0;
-            $('#bulk-mount').toggle(anyCheckboxChecked);
-        });
-
-        // Event listener for button click
-        $('#bulk-mount').on('click', function () {
-            var checkedCheckboxes = $('.select-checkbox:checked');
-            if (checkedCheckboxes.length > 0) {
-                let table='session_courses'
-                performBulkMount(table);
-            } else {
-                Swal.fire({
-                    icon: 'error',title: 'No Record selected',
-                    text: 'Please select at least one record before removing.',
-                });
-            }
-        });
-
-        // Function to perform the bulk remove action
-        function performBulkMount(table) {
-            let selectedtitles = $('.select-checkbox:checked').map(function () {
-                return $(this).data('title');
-            }).get();
-            let selectedIds = $('.select-checkbox:checked').map(function () {
-                return $(this).data('id');
-            }).get();
-
-            let message = 'Are you sure you want to mount the course(s) below:<br><br><span class="text-danger"> ' + selectedtitles.join(', ') +'</span>';
-            Swal.fire({
-                title: 'Confirm Action',
-                html: message,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3BAFDA',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, mount it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '{{ route("bulk-mount") }}',
-                        type: 'POST',
-                        data: { id: selectedIds, table: table },
-                        headers: {
-                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                        },
-                        success: function(response) {
-                            
-                            if (response.status === 'success') {
-                                showSweetAlert('success', 'Success!', response.message);
-                            } else {
-                                showSweetAlert('error', 'Error!', response.message);
-                            }
-                            counter = 0;
-                            dataTable.ajax.reload();
-                            $('#bulk-mount').fadeOut();
-                        },
-                        error: function (xhr, status, error) {
-                            if (xhr.responseJSON && xhr.responseJSON.status === 'error') {
-                                showSweetAlert('error', 'Error!', xhr.responseJSON.message);
-                            } else {
-                                showSweetAlert('error', 'Error!', 'Request Failed: ' + status + ', ' + error);
-                            }
-                        }
-                    });
-                }
-                else { dataTable.ajax.reload();}
-                
-            });
-        }
 
     });
 </script>

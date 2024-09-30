@@ -6,7 +6,7 @@
 
 @section('content')
     
-<div class="container-fluid mt-5">
+<div class="container-fluid mt-4">
       
     <div id="security-notice" class="row justify-content-center">
         <div class="col-lg-6">
@@ -14,26 +14,30 @@
                 <div class="modal-header bg-primary">
                     <a class="mx-2 my-2">
                         <div class="img-animation cus-shape">
-                            <img src="{{ asset('root/mint/assets/images/users/avatar-8.jpg') }}" alt="#" class="img-fluid">
+                            <img src="{{ asset('root/images/user.png') }}" alt="#" class="img-fluid">
                         </div>
-                        <h3 class="text-white">Name here</h3>
+                        <h3 class="text-white">{{ session('name') ?? ''}}</h3>
                     </a>
-                    
                 </div>
                 
                 <div class="card-body">
                     <div class="plan-features text-muted">
-                        <h3>Be Assured That:</h3>
-                        <p class="mb-1">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quidem, tempora totam at alias ut tenetur rerum magnam commodi dolorum odio inventore temporibus qui amet architecto necessitatibus est facilis eum exercitationem! Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio nisi unde consequuntur at doloremque numquam, praesentium minus eaque quia magnam? Beatae, distinctio ex similique doloribus provident dolorum? Sed, eligendi quo. Lorem ipsum dolor sit amet consectetur adipisicing elit. Officiis dolor vero omnis, quos facere ad quae, aut accusamus laudantium, nesciunt dolorum aliquam consequuntur expedita unde blanditiis quaerat corporis similique.</p>
+                        <h3>FOR QUALITY AND ASSURANCE PURPOSES</h3>
                         <hr class="cus-hr">
-                        <div class="form-check mt-2 text-primary">
+                        <p class="mb-1">
+                            Before you start appraising a lecturer, we kindly ask you to pledge your commitment to providing honest and constructive feedback. Your appraisal is crucial in improving the quality of education and ensuring that lecturers are recognized for their efforts. Please read the following pledge and confirm your agreement:
+                        </p>
+                        <p class="mb-1">
+                            "I pledge to provide honest, respectful, and constructive feedback in my appraisal of the lecturer. I understand that my feedback will be used to enhance the educational experience and support the continuous improvement of teaching practices."
+                        </p>
+                        <hr class="cus-hr">
+                        <div class="form-check mt-2 text-primary" role="button">
                             <input type="checkbox" class="form-check-input" id="confirmcheck">
                             <label class="form-check-label" for="confirmcheck">
-                                <i class="fas fa-thumbs-up mx-1"></i>Yes I do agree, and I will abide by all protocols
+                                <i class="fas fa-thumbs-up mx-1"></i> Yes, I do agree, and I will abide by all protocols
                             </label>
                         </div>
-                        
-                    </div>            
+                    </div>                              
                 </div>
             </div>
         </div>
@@ -46,35 +50,40 @@
             <div class="card mt-4">
                 <div class="card-body">
                     <div class="plan-features text-muted">
-                        <h3 class="text-primary">Must Know This: </h3>
+                        <h3 class="text-primary">Must Know This:</h3>
                         <hr class="cus-hr">
-                        <p class="mb-1">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quidem, tempora totam at alias ut tenetur rerum magnam commodi dolorum odio inventore temporibus qui amet architecto necessitatibus est facilis eum exercitationem! Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio nisi unde consequuntur at doloremque numquam, praesentium minus eaque quia magnam? Beatae, distinctio ex similique doloribus provident dolorum? Sed, eligendi quo. Lorem ipsum dolor sit amet consectetur adipisicing elit. Officiis dolor vero omnis, quos facere ad quae, aut accusamus laudantium, nesciunt dolorum aliquam consequuntur expedita unde blanditiis quaerat corporis similique.</p>
+                        <p class="mb-1">
+                            Dear Students, we want to assure you that your participation in this appraisal is both valued and crucial. Your honest and constructive feedback helps us improve the quality of education and supports our lecturers in their professional growth. Remember, your input is confidential and will be used solely for enhancing the learning experience for everyone.
+                        </p>
+                        <p class="mb-1">
+                            Please take a moment to reflect on your experiences and provide thoughtful feedback. We appreciate your dedication and commitment to maintaining high educational standards. By working together, we can create a better learning environment for all.
+                        </p>
                         <hr class="cus-hr">
                         <div class="text-center">
-                            <button type="button" class="btn btn-outline-primary mt-2 rounded-5" id="icontinue"><i class="mdi mdi-chevron-triple-right mx-1"></i>Yes Continue</button>
+                            <button type="button" class="btn btn-outline-primary mt-2 rounded-5" id="icontinue">
+                                <i class="mdi mdi-chevron-triple-right mx-1"></i>Yes, Continue
+                            </button>
                         </div>
-                    </div>            
+                    </div>                              
                 </div>
             </div>
         </div>
     </div>
 
     <div style="display: none" id="available-lecturers" class="row justify-content-start">
+        
+        <p>This appraisal categorizes lecturers based on the courses they teach you. A lecturer may appear more than once if they teach you multiple courses. You are expected to appraise each lecturer based on their performance in each specific course.</p>
+
+
         <div class="col-12">
             <div class="card">
                 <div class="card-body" style="margin: -10px 0  -10px 0;">
                     <div class="row">
-                        <div class="d-flex gap-2 col-lg-8 col-sm-6">
-                            <input type="text" class="col-lg-4 mb-2 form-control" placeholder="Sort here...">
-                            <div class="col-lg-4 mb-2">
-                                <select id="roles" class="select2 form-control" data-toggle="select2">
-                                    <option selected disabled>Choose...</option>
+                        <div class="row d-flex gap-2 col-lg-12 col-sm-12">
+                            <div class="col-lg-12 mb-2">
+                                <select id="courses" class="select2 form-control" data-toggle="select2">
+                                    <option selected disabled>Filter by course...</option>
                                 </select>
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-sm-6">
-                            <div class="d-flex gap-2 justify-content-lg-end mt-3 mt-lg-0">
-                                <button type="button" class="btn btn-secondary waves-effect waves-light"><i class="mdi mdi-cog"></i></button>
                             </div>
                         </div>
                     </div>
@@ -82,9 +91,24 @@
             </div> 
         </div>
 
-        @for ($i = 1; $i <= 14; $i++)
+        {{-- Course template start here --}}
+        <div class="col-lg-12" style="margin-bottom: -17px">
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="plan-features text-muted">
+                        <hr class="cus-hr">
+                        <strong>Course Title</strong><br>
+                        <b>Code Code here</b>
+                        <hr class="cus-hr">
+                    </div>                              
+                </div>
+            </div>
+        </div>
+        {{-- cour template ends here --}}
+
+        @for ($i = 1; $i <= 4; $i++)
             <div class="col-lg-3">
-                <div class="card plan-card mt-4 rounded-4">
+                <div class="card plan-card" style="border-end-end-radius: 20px; border-bottom-left-radius: 20px">
                     <div class="card-body text-center">
                         <div class="pt-3 bg-primary" style="margin: -22px;">
                             <div class="img-animation cus-shape">
@@ -95,17 +119,14 @@
                         </div>
             
                         <div class="plan-features pt-3 text-muted">
-                            <p class="mb-1">Free Live Support</p>
-                            <p class="mb-1">Unlimited User</p>
-                            <p class="mb-1">No Time Tracking</p>
-                            <p class="mb-1">Free Setup</p>
+                            <p class="mb-1">Email Address</p>
                             <hr class="cus-hr">
                             <button type="button" class="btn btn-outline-primary mt-2 say-something"><i class="mdi mdi-comment mx-1"></i>Say Something</button>
                         </div>                    
                     </div>
                 </div>
             </div>
-        @endfor
+        @endfor    
 
     </div>
 
@@ -192,15 +213,7 @@
                                                     </div> --}}
 
                                                     <x-long-answer />
-                                                    <x-date-answer />
                                                     <x-multiple-choice />
-                                                    <x-time-answer />
-                                                    <x-dropdown />
-                                                    <x-true-false />
-                                                    <x-multi-select />
-                                                    <x-linear-scale />
-                                                    <x-short-answer />
-                                                    <x-multi-check />
                                                 </section>
                                             </div>
                                             <div class="col-lg-12">
@@ -208,16 +221,9 @@
                                                     <h4 id="section-text" class="text-white mx-2">Section 2 Header Here</h4>
                                                 </div>
                                                 <section id="questions-holder">
-                                                    <x-long-answer />
-                                                    <x-date-answer />
-                                                    <x-linear-scale />
                                                     <x-short-answer />
                                                     <x-multi-check />
                                                     <x-multiple-choice />
-                                                    <x-time-answer />
-                                                    <x-dropdown />
-                                                    <x-true-false />
-                                                    <x-multi-select />
                                                 </section>
                                             </div>
                                         </div>
@@ -312,6 +318,28 @@
                 $('#available-lecturers').fadeIn('fast');
             });
         });
+
+
+        // Get the courses for the dropdown
+        $.ajax({
+            url: '{{ route("student.SemesterCourses") }}',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var roleSelect = $('#courses');
+                roleSelect.empty();
+                roleSelect.append('<option value="" selected disabled>Choose...</option>');
+                $.each(data.courses, function (key, value) {
+                    roleSelect.append('<option value="' + value.id + '">' + value.course.toUpperCase() +" (" + value.course_code + " )" + '</option>');
+                });
+                roleSelect.select2({ dropdownParent: roleSelect.parent() });
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+            }
+        }); 
+
+
 
     });
 </script>

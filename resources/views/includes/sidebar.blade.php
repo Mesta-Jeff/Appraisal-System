@@ -28,11 +28,10 @@
 
         <!-- User box -->
         <div class="user-boxs text-center">
-            <img src="{{ asset('root/mint/assets/images/users/avatar-1.jpg') }}" alt="img" title="Username Here"
+            <img src="{{ asset('root/mint/assets/images/users/avatar-1.jpg') }}" alt="img" title="{{ session('name')}}"
                 class="rounded-circle avatar-md">
             <div class="dropdown">
-                <a href="#" class="dropdown-toggle h5 mt-2 mb-1 d-block"
-                    data-bs-toggle="dropdown">Username here <i class="mdi mdi-chevron-down"></i></a>
+                <a href="#" class="mt-4 mb-2 text-reset" data-bs-toggle="dropdown">{{ session('name' ?? '')}}</a>
                 <div class="dropdown-menu user-pro-dropdown">
 
                     <!-- item-->
@@ -54,14 +53,14 @@
                     </a>
 
                     <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item notify-item text-danger">
+                    <a href="{{ route('logout')}}" class="dropdown-item notify-item text-danger">
                         <i class="fe-log-out me-1"></i>
                         <span>Logout</span>
                     </a>
 
                 </div>
             </div>
-            <p class="text-reset">Admin Head</p>
+            <p class="text-reset" style="color: teal !important; font-weight: 900">{{ session('role') ?? ''}}</p>
         </div>
 
         <!--- Sidemenu -->
@@ -103,11 +102,22 @@
                             <li id="view-courses"><a href="{{ route('courses')}}">Create Courses</a></li>
                             <li id="view-classes"><a href="{{ route('classes')}}">Level</a></li>
                             {{-- <li id="view-academic-year-semester"><a href="{{ route('session-semester')}}">Academic Semester</a></li> --}}
-                            <li id="view-academic-year-semester-course"><a href="{{ route('session-course')}}">Mount Courses</a></li>
-                            <li id="view-questions"><a href="{{ route('questions')}}">Questions</a></li>
-                            <li id="system-config"><a href="{{ route('system-config')}}">System Config</a></li>
-                            <li id="system-dictionary"><a href="{{ route('system-dictionary')}}">System Dictionary</a></li>
-                            <li id="temp-appraisal"><a href="{{ route('appraisal-config')}}">Temp Appraisal</a></li>
+                            <li id="view-academic-year-semester-course"><a href="{{ route('session-course')}}">Mount Courses</a></li>                            
+                            <li id="view-questions">
+                                <a href="pages-starter.html#sidebarMultilevel2" data-bs-toggle="collapse" aria-expanded="false" aria-controls="sidebarMultilevel2">
+                                    Manage Questions <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarMultilevel2">
+                                    <ul class="nav-second-level">
+                                        <li><a href=" {{ route('question.section')}}">Sections</a></li>
+                                        <li><a href="{{ route('questions')}}">Questions</a></li>
+                                        <li><a href="{{ route('options')}}">Options</a></li>
+                                        <li><a href="{{ route('question.option')}}">Questions & Options</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li id="Lecturer-courses"><a href="{{ route('lecturer.courses')}}">Assign Lecturer a Course</a></li>
+                            <li id="system-dictionary"><a href="{{ route('system-dictionary')}}">System Configuration</a></li>
                         </ul>
                     </div>
                 </li>
@@ -156,13 +166,13 @@
                         <span> Tickets </span>
                     </a>
                 </li>
-                <li class="menu-title mt-2">Custom</li>
 
+                {{-- <li class="menu-title mt-2">Custom</li>
                 <li>
                     <a href="#sidebarExtendedui" data-bs-toggle="collapse" aria-expanded="false" aria-controls="sidebarExtendedui">
                         <i class="ri-stack-line"></i>
                         <span class="badge bg-info float-end">Hot</span>
-                        <span> Other s</span>
+                        <span> Others</span>
                     </a>
                     <div class="collapse" id="sidebarExtendedui">
                         <ul class="nav-second-level">
@@ -174,7 +184,8 @@
                             </li>
                         </ul>
                     </div>
-                </li>
+                </li> --}}
+
             </ul>
 
         </div>

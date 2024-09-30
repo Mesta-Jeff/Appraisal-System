@@ -2,7 +2,7 @@
 <html lang="en" data-topbar-color="brand">
     <head>
         <meta charset="utf-8" />
-        <title>@yield('title') - NES Appraisal System</title>
+        <title>@yield('title') - {{ env('APP_TITLE')}}, A product from SkaiMount</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta content="A fully featured appraial system to build CRM, CMS, etc." name="description" />
         <meta content="Skai Mount" name="author" />

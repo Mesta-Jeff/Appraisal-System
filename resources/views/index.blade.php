@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>NES Apparaisal System</title>
+  <title>{{ env('APP_TITLE')}}</title>
   <base href="">
   <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, viewport-fit=cover">
 
@@ -158,7 +158,7 @@
               <div class="flex flex-column md:align-items-center md:flex-row">
 
                 <div class="p-2 flex flex-row md:flex-column">
-                  <a href="{{ route('login')}}">
+                  <a href="{{ route('student.questionaires')}}">
                     <div class="hero-box w-10rem h-10rem md:w-12rem md:h-12rem animation flex align-items-center justify-content-center">
                       <div class="flex flex-column align-items-center"><i class="pi pi-lock" style="font-size: 30px;"></i>
                         <div class="name"><b>I want to Appraise</b><span>click to login</span></div>

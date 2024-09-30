@@ -1,3 +1,4 @@
+<!-- resources/views/student/dashboard.blade.php -->
 
 @extends('layout.main')
 

@@ -2,7 +2,7 @@
 
 @extends('layouts.main')
 
-@section('title', 'Student Dashboard')
+@section('title', 'Staff Dashboard')
 
 @section('content')
     <!-- Your content for the student dashboard goes here -->
