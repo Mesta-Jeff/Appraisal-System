@@ -450,18 +450,35 @@ class QuestionController extends Controller
 
 
 
-    // STUDENT QUESTIONAIRES
-    public function studentQuestionaires(Request $request)
+    //TODO: STUDENT QUESTIONAIRES
+    /*"SELECT s.title as section, q.question_text, q.question_for, o.option_text, q.section_id, qo.question_id, qo.option_id, qo.id as question_option_id FROM questions q LEFT JOIN sections s on s.id = q.section_id INNER JOIN question_options qo on qo.question_id = q.id INNER JOIN options o on o.id = qo.option_id GROUP BY s.title, q.question_text, q.question_for, q.section_id, qo.question_id, qo.option_id, o.option_text, qo.id ORDER BY s.title;"*/
+
+    public function studentQuestionnaires(Request $request)
     {
-        /* if ($request->ajax()) {
-            $query = "SELECT s.title as section, q.question_text, q.question_for, o.option_text, q.section_id, qo.question_id, qo.option_id, qo.id as question_option_id FROM questions q LEFT JOIN sections s on s.id = q.section_id INNER JOIN question_options qo on qo.question_id = q.id INNER JOIN options o on o.id = qo.option_id GROUP BY s.title, q.question_text, q.question_for, q.section_id, qo.question_id, qo.option_id, o.option_text, qo.id ORDER BY s.title;";
+        if ($request->ajax()) {
+            // Use INNER JOIN to ensure only questions with options are returned
+            $query = "SELECT s.title as section, q.question_text, q.question_for, o.option_text, q.section_id, qo.question_id, qo.option_id, 
+                            qo.id as question_option_id 
+                    FROM questions q 
+                    INNER JOIN sections s ON s.id = q.section_id 
+                    INNER JOIN question_options qo ON qo.question_id = q.id 
+                    INNER JOIN options o ON o.id = qo.option_id 
+                    ORDER BY s.title";
+
+            // Run the query
             $data = DB::select($query);
-            
+
+            // Log the fetched data for debugging purposes (optional)
+            Log::info('Questions fetched', ['data' => $data]);
+
+            // Return the response as JSON
             return response()->json(['status' => 'success', 'Questions' => $data]);
-        } */
-        // Your logic here
+        }
+
+        // Render the view if not an AJAX request
         return view('student-questionaires');
     }
+
 
     
 

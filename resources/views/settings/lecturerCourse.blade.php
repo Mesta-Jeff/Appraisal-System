@@ -58,12 +58,9 @@
                         <table id="example" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
                             <thead>
                                 <tr class="text-uppercase">
-                                    <th>Programme</th>
-                                    <th>Level</th>
+                                    <th>Lecturer</th>
                                     <th>Course</th>
-                                    <th>Course Code</th>
-                                    <th>Semester</th>
-                                    <th>Status</th>
+                                    <th>Course Type</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -103,11 +100,11 @@
                     </div>
                     <div class="mb-1">
                         <label for="username" class="form-label">Select all Courses you want to assign</label>
-                        <select id="course" name="course" class="select2 form-control" data-placeholder="Choose ..." data-toggle="select2"></select>
+                        <select id="course" name="session_course_id" class="select2 form-control" data-placeholder="Choose ..." data-toggle="select2"></select>
                     </div>
                     <div class="mb-1">
                         <label for="lecturer" class="form-label">Select Lecturer</label>
-                        <select id="lecturer" name="lecturer" class="select2 form-control" data-toggle="select2">
+                        <select id="lecturer" name="lecturer_id" class="select2 form-control" data-toggle="select2">
                             <option selected disabled>Choose...</option>
                         </select>
                     </div>
@@ -263,7 +260,6 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function (response) {
-                    counter = 0;
                     dataTable.ajax.reload();
                     $('#my-modal').modal('hide');
 
@@ -305,7 +301,8 @@
         $('#example').on('click', '.delete-btn', function () {
             let Id = $(this).data('id');
             let title = $(this).data('title');
-            let message = 'Are you sure you want to remove: <span class="text-danger"> ' + title +'</span>'
+            let lecturer = $(this).data('lecturer');
+            let message = 'Are you sure you want to take <span class="text-danger"> ' + title +'</span> from <b class="text-info"> ' + lecturer +'</b>..?'
             // Show SweetAlert confirmation dialog
             Swal.fire({
                 title: 'Confirm Action',
@@ -314,11 +311,11 @@
                 showCancelButton: true,
                 confirmButtonColor: '#3BAFDA',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, remove it!'
+                confirmButtonText: 'Yes, take it!'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: '{{ route("destroyDepartment") }}',
+                        url: '{{ route("destroy.assignment") }}',
                         type: 'POST',
                         data: { id: Id },
                         headers: {
@@ -331,7 +328,6 @@
                             } else {
                                 showSweetAlert('error', 'Error!', response.message);
                             }
-                            var counter = 1;
                             dataTable.ajax.reload();
                         },
                         error: function (xhr, status, error) {
@@ -358,37 +354,35 @@
         dataTable = $("#example").DataTable(
         {
             ajax: {
-                url: '{{ route('session-course') }}',
+                url: '{{ route("lecturer.courses") }}',
                 type: 'GET',
-                dataSrc: 'sessionCourses',
+                dataSrc: 'lecturerCourses',
                 beforeSend: showLoader,
                 complete: hideLoader,
             },
             columns: [
                 {
-                    data: 'programme',
+                    data: 'lecturer',
                     render: function(data, type, row) {
-                        return truncateText(data, 20);
+                        return truncateText(data, 50);
                     }
                 },
-                { data: 'class'},
                 {
                     data: 'course',
                     render: function(data, type, row) {
                         return truncateText(data, 50);
                     }
                 },
-                { data: 'course_code'},
-                { data: 'semester'},
-                { data: 'status'},
+                {
+                    data: 'course_type',
+                    render: function(data, type, row) {
+                        return truncateText(data, 50);
+                    }
+                },             
                 {
                     data: null,
                     render: function(data, type, row) {
-                        if (data.status === 'Unmounted') {
-                            return '<button class="btn btn-info btn-sm mount-btn" data-id="' + data.id + '" data-title="' + data.department + '">Mount</button>';
-                        } else {
-                            return '<button class="btn btn-danger btn-sm unmount-btn" data-id="' + data.id + '" data-title="' + data.department + '">Unmount</button>';
-                        }
+                        return '<button class="btn btn-danger btn-sm delete-btn" data-id="' + data.id + '" data-title="' + data.course + '" data-lecturer="' + data.lecturer + '">Unassign</button>';
                     }
                 }
 

@@ -68,7 +68,7 @@
                     <ul class="list-unstyled topnav-menu mb-0" style="margin-right: 0px;">
                         <li class="pro-user-name d-flex justify-content-center">
                             <div class="waves-effect waves-light">
-                                <h3 class="my-3 text-white text-uppercase">{{ session('name') ?? ''}}</h3>
+                                <h3 class="my-3 text-white text-uppercase d-none d-md-inline-block">{{ session('name') ?? ''}}</h3>
                             </div>
                         </li>
                     </ul>

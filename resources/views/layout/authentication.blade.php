@@ -39,7 +39,7 @@
 
         <footer class="footer footer-alt">
             All Right Reserved.
-            <script>document.write(new Date().getFullYear())</script> &copy; UEW NES. <small>Community-Edition</small>. Powered By <a href="#">Skai Mount</a> 
+            <script>document.write(new Date().getFullYear())</script> &copy; {{ env('APP_ALIASE')}}. <small>Community-Edition</small>. Powered By <a href="#">Skai Mount</a> 
         </footer>
 
         <!-- Vendor js -->

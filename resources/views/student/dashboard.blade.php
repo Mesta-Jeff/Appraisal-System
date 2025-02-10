@@ -35,7 +35,7 @@
                             <img src="{{ asset('root/images/logo-text-dark.png') }}" alt="" height="22">
                         </span>  
                         <hr class="cus-hr">
-                        <h5 class="text-muted"><br>I am only in to get my examination number and leave <br><br></h5>
+                        <h5 class="text-muted"><br>I am only in to get my examination number and leave <br></h5>
                         <hr class="cus-hr">
                         <div class="text-center">
                             <a href="{{ route('exams-number')}}" class="btn btn-primary mt-2 rounded-5" id="get-number"><i class="mdi mdi-chevron-triple-right mx-1"></i>Get Number</a>

@@ -201,7 +201,7 @@
             $('#modal-title').text('Adding New Record to ' + '{{ env('APP_ALIASE')}}');
             $('#edit-data').hide('fade');
             $('#save-data').show('fade');
-            $('#my-modal').addClass('modal-blur').modal('show');
+            $('#my-modal').modal('show');
         })
 
         //SENDING DATA TO THE API FOR SAVINGS
@@ -335,7 +335,7 @@
             $('#modal-title').text('Modifying - ' + title);
             $('#save-data').hide('fade');
             $('#edit-data').show('fade');
-            $('#my-modal').addClass('modal-blur').modal('show');
+            $('#my-modal').modal('show');
         });
 
         //DELETE THE DATA

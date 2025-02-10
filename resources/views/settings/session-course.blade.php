@@ -37,7 +37,7 @@
                         <div class="col-lg-6 col-sm-8">
                             <div class="d-flex gap-2 justify-content-lg-end mt-3 mt-lg-0">
                                 <button type="button" id="btnref" class="btn btn-secondary"><i class="mdi mdi-atom-variant spin"></i> Reload</button>
-                                <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Mount New</button>
+                                <button type="button" id="add-new-button" class="btn btn-outline-success waves-effect waves-light"><i class="mdi mdi-plus-circle me-1"></i> Load Course</button>
                             </div>
                         </div>
                     </div>

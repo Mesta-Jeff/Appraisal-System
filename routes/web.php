@@ -125,7 +125,7 @@ Route::middleware([CheckSessionValue::class])->group(function () {
 
     Route::get('/settings/lecturer-courses', [SettingsController::class, 'lecturerCourses'])->name('lecturer.courses');
     Route::post('/session/assign-courses', [SettingsController::class, 'assignCourses'])->name('assign.courses');
-
+    Route::post('/session/assignment-destroy', [SettingsController::class, 'destroyAssignment'])->name('destroy.assignment');
 
     Route::get('/settings/system-dictionary', [SettingsController::class, 'systemDictionary'])->name('system-dictionary');
 
@@ -194,8 +194,9 @@ Route::middleware([CheckSessionValue::class])->group(function () {
 
     // ================  STUDENT CONTROL UNIT ROUTE  ===========================
     Route::get('/student/examination-number', [StudentController::class, 'examinationNumber'])->name('exams-number');
-    Route::get('/student/questionaires', [QuestionController::class, 'studentQuestionaires'])->name('student.questionaires');
+    Route::get('/student/questionaires', [QuestionController::class, 'studentQuestionnaires'])->name('student.questionaires');
     Route::get('/student/semesterCourse', [StudentController::class, 'SemesterCouses'])->name('student.SemesterCourses');
+    Route::get('/student/get-lecturersByCourse', [StudentController::class, 'getLecturerAndCouses'])->name('get.lecturersByCourse');
 
 
     //TODO:   DASHBOARDS

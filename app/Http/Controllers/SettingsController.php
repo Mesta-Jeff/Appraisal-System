@@ -14,6 +14,7 @@ use App\Models\Department;
 use App\Models\Permission;
 use Illuminate\Http\Request;
 use App\Models\SessionCourses;
+use App\Models\LecturerCourses;
 use App\Models\SessionSemester;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -1042,7 +1043,6 @@ class SettingsController extends Controller
     }
 
 
-
     //TODO: SESSION COURSES
     public function sessionCourse(Request $request)
     {
@@ -1158,51 +1158,48 @@ class SettingsController extends Controller
 
             $courses = DB::table('courses as c')
                 ->select('sc.id', 'c.course')
-                ->join('programmes as p', 'c.programme_id', '=', 'p.id') 
-                ->join('departments as d', 'p.department_id', '=', 'd.id')
+                ->join('programmes as p', 'c.programme_id', '=', 'p.id')
+                ->leftJoin('departments as d', 'p.department_id', '=', 'd.id')
                 ->join('session_courses as sc', 'c.id', '=', 'sc.course_id')
-                
-                // Filter only when the course type is departmental for HOD and Officer
-               
-                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
-                    return $query->where(function ($query) use ($departmentId) {
-                        $query->where('d.id', $departmentId)->whereRaw('LOWER(c.course_type) = ?', ['departmental']);
-                    });
-                })
-                ->orWhereRaw('LOWER(c.course_type) != ?', ['departmental'])
-                ->orWhere(function ($query) use ($departmentId) {
-                    $query->where('d.id', '!=', $departmentId);
-                })
-                
+
                 // Leave the Dean and Administrator logic unchanged
                 ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
                     return $query->where('d.faculty_id', $facultyId);
                 })
 
-                // Add logic for 'faculty' course type to check if the programme belongs to the session's department
-                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
-                    return $query->where(function ($query) use ($departmentId) {
-                        $query->whereRaw('LOWER(c.course_type) = ?', ['faculty'])->whereRaw('FIND_IN_SET(?, c.accessors)', [$departmentId]);
+                // Add logic for HOD or Officer roles
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId, $request) {
+                    return $query->where(function ($query) use ($departmentId, $request) {
+                        // Condition when the course type is not 'faculty'
+                        $query->where(function ($query) use ($request) {
+                            $query->whereRaw('LOWER(c.course_type) = ?', ['departmental'])
+                                ->orWhereRaw('LOWER(c.course_type) = ?', ['general']);
+                        })
+                        // Apply programme filter when course type is not 'faculty'
+                        ->where('sc.programme_id', $request->input('programme_id'))
+
+                        // Separate condition for 'faculty' course type
+                        ->orWhere(function ($query) use ($departmentId) {
+                            $query->whereRaw('LOWER(c.course_type) = ?', ['faculty'])
+                                ->whereRaw('FIND_IN_SET(?, c.accessors)', [$departmentId]);
+                        });
                     });
                 })
-                
-                ->where('c.programme_id', $request->input('programme_id'))
+
+                // Additional filtering conditions
+                ->where('sc.programme_id', $request->input('programme_id'))
                 ->where('c.is_deleted', 'No')
                 ->where('p.is_deleted', 'No')
                 ->where('d.is_deleted', 'No')
-                ->where('sc.status', '!=', 'InActive')
+                // ->where('sc.status',  'Mounted')
                 ->where('sc.is_deleted', 'No')
                 ->orderBy('c.id', 'desc')
                 ->get();
-        //    Log::info('Courses Data:', ['courses' => $courses->toArray()]);
 
             return response()->json(['status' => 'success', 'courses' => $courses]);
         }
-
     }
 
-
-    
 
 
     //TODO: FACULTY INFORMATIONNS AND ACTIONS
@@ -1649,17 +1646,53 @@ class SettingsController extends Controller
         }
     }
 
-
+    // TODO: Lecturers and courses
     public function lecturerCourses(Request $request)
     {
-        // Your logic here
+        if ($request->ajax()) {
+            $currentRole = $request->session()->get('role');
+            $departmentId = $request->session()->get('department');
+            $facultyId = $request->session()->get('faculty');
+        
+            $lecturerCourses = DB::table('lecturer_courses as lc')
+                ->join('session_courses as sc', 'lc.session_course_id', '=', 'sc.id')
+                ->join('courses as c', 'sc.course_id', '=', 'c.id')
+                ->join('lecturers as l', 'lc.lecturer_id', '=', 'l.id')
+                ->join('programmes as p', 'sc.programme_id', '=', 'p.id')
+                ->leftJoin('departments as d', 'p.department_id', '=', 'd.id')
+                ->select(
+                    'lc.id', 
+                    'lc.session_course_id', 
+                    'lc.lecturer_id', 
+                    'c.course_type', 
+                    'd.department',  
+                    DB::raw("CONCAT(l.title, ' ', l.first_name, ' ', l.middle_name, ' ', l.last_name) as lecturer"),
+                    DB::raw("CONCAT(c.course, ' (', c.course_code, ')') as course"), 
+                    'd.faculty_id' 
+                )
+                ->when(in_array($currentRole, ['HOD', 'Officer']), function ($query) use ($departmentId) {
+                    return $query->where('d.id', $departmentId);
+                })
+                ->when(in_array($currentRole, ['Dean', 'Administrator']), function ($query) use ($facultyId) {
+                    return $query->where('d.faculty_id', $facultyId);
+                })
+                // Global filters
+                ->where('sc.is_deleted', 'No')
+                ->where('lc.is_deleted', 'No')
+                ->where('sc.status', 'Mounted')
+                ->orderBy('lc.id', 'desc')
+                ->get();
+        
+            return response()->json(['status' => 'success', 'lecturerCourses' => $lecturerCourses]);      
+        }
+        
+    
         return view('settings.lecturerCourse');
     }
 
-    //assignCourses
+    // TODO: assignCourses
     public function assignCourses(Request $request)
     {
-        // Your logic here
        
         if (!$request->ajax()) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
@@ -1668,8 +1701,8 @@ class SettingsController extends Controller
         try {
             // Validate the input
             $validator = Validator::make($request->all(), [
-                'course' => 'required|int',
-                'lecturer' => 'required|int',
+                'session_course_id' => 'required|exists:session_courses,id',
+                'lecturer_id' => 'required|exists:lecturers,id',
                 'description' => 'required|string',
             ]);
 
@@ -1678,21 +1711,23 @@ class SettingsController extends Controller
                  return response()->json(['status' => 'error', 'message' => $validator->errors()->all()], 422);
             }
 
+            // Get validated data
+            $data = $validator->validated();
+
             // Check if already exists
-            $existingClass = LecturerCourses::where('class', $request->input('classes'))->where('is_deleted','No')->first();
+            $existingClass = LecturerCourses::where('session_course_id', $request->input('session_course_id'))
+            ->where('lecturer_id', $request->input('lecturer_id'))->where('is_deleted','No')->first();
                 if ($existingClass) {
-                    return response()->json(['status' => 'error', 'message' => 'Class already exists, try again with different record'], 422);
+                    return response()->json(['status' => 'error', 'message' => 'You cannot assign same lecturer on the same course again, try again with a different course'], 422);
                 }
 
             // Save the record with validated fields
-            $instance = Classes::create([
-                'class' => $validator->validated()['classes'],
-            ]);
+            $instance = LecturerCourses::create($data);
 
             if ($instance->save()) {
-                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, class created']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, Lecturer assigned']);
             }
-            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, data could not be saved'], 500);
+            return response()->json(['status' => 'error', 'message' => 'Sorry! operation failed, lecturer could not me assigned'], 500);
         } catch (\Exception $e) {
             Log::error('Exception during operation: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -1700,14 +1735,27 @@ class SettingsController extends Controller
         
     }
 
+    // TODO: Remove lecturer from the course
+    public function destroyAssignment(Request $request)
+    {
+        if ($request->ajax()) {
+            $request->validate(['id' => 'required|exists:lecturer_courses,id',]);
 
-
-
+            try {
+                LecturerCourses::where('id', $request->id)->update(['is_deleted' => 'Yes']);
+                return response()->json(['status' => 'success', 'message' => 'Request sent operation performed successfully, course has been released']);
+            } catch (\Exception $e) {
+                Log::error('Exception during operation: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Operation failed.'], 500);
+            }
+        }
+        // return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+    }
 
     public function systemDictionary(Request $request)
     {
         // Your logic here
-        return view('settings.system-dictionary');
+        return view('settings.system-dictionary'); 
     }
 
 

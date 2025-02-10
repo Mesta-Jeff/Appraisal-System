@@ -75,11 +75,6 @@
                 </div> <!-- end card-body -->
             </div>
             <!-- end card -->
-            <p class="text-muted mt-4">
-                If you suspect any unauthorized activity on your account, please report it immediately to our <a href="#"><strong>IT support team</strong></a>.
-                 Your account security is our top priority.
-            </p>
-            
         </div> <!-- end col -->
     </div>
     <!-- end row -->

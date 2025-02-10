@@ -363,7 +363,6 @@ class UserController extends Controller
     //2009-06-29
 
     //TODO: list of staff
-
     public function Staff(Request $request)
     {
         if ($request->ajax()) {
@@ -548,4 +547,7 @@ class UserController extends Controller
     {
 
     }
+
+    
+
 }

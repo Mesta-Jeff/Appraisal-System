@@ -108,7 +108,7 @@
                     </div>
                     <div class="mb-2">
                         <label for="username" class="form-label">Programme Duration</label>
-                        <select id="duration" name="duration" class="select2 form-control" data-toggle="select2">
+                        <select id="duration" name="duration" class="form-control">
                             <option selected disabled>Choose...</option>
                             <option value="6 Months">6 Months</option>
                             <option value="1 Year">1 Year</option>

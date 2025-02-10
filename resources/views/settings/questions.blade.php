@@ -116,7 +116,7 @@
 
                     <div class="mb-2 mt-2">
                         <label for="username" class="form-label">Who will answer this question...?</label>
-                        <select id="question_for" name="question_for" class="select2 form-control" data-toggle="select2">
+                        <select id="question_for" name="question_for" class="form-control">
                             <option selected disabled>Choose Option...</option>
                             <option value="Student">Student</option>
                             <option value="Lecturer">Lecturer</option>

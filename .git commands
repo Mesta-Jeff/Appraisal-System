@@ -1,5 +1,3 @@
-chmod 600 id_rsa
 
-eval "$(ssh-agent -s)"
 
-ssh-add id_rsa
+chmod 600 id_rsa && eval "$(ssh-agent -s)" && ssh-add id_rsa

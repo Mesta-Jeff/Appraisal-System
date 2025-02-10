@@ -97,8 +97,8 @@
                 <div class="card-body">
                     <div class="plan-features text-muted">
                         <hr class="cus-hr">
-                        <strong>Course Title</strong><br>
-                        <b>Code Code here</b>
+                        <strong id="c-title">Course Title</strong><br>
+                        <b id="c-code">Code Code here</b>
                         <hr class="cus-hr">
                     </div>                              
                 </div>
@@ -106,27 +106,10 @@
         </div>
         {{-- cour template ends here --}}
 
-        @for ($i = 1; $i <= 4; $i++)
-            <div class="col-lg-3">
-                <div class="card plan-card" style="border-end-end-radius: 20px; border-bottom-left-radius: 20px">
-                    <div class="card-body text-center">
-                        <div class="pt-3 bg-primary" style="margin: -22px;">
-                            <div class="img-animation cus-shape">
-                                <img src="{{ asset('root/mint/assets/images/users/avatar-8.jpg') }}" alt="#" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-                            </div>
-                            <h4 class="text-uppercase text-white lec-name">Lecturer Name here..</h4>
-                            <hr style="border-color: white;">
-                        </div>
-            
-                        <div class="plan-features pt-3 text-muted">
-                            <p class="mb-1">Email Address</p>
-                            <hr class="cus-hr">
-                            <button type="button" class="btn btn-outline-primary mt-2 say-something"><i class="mdi mdi-comment mx-1"></i>Say Something</button>
-                        </div>                    
-                    </div>
-                </div>
-            </div>
-        @endfor    
+        <div class="row d-flex" id="lecturer-container">
+
+            <h2><strong>No course selected yet...</strong></h2>
+        </div>   
 
     </div>
 
@@ -164,14 +147,8 @@
                                         </a>
                                     </li>
                                     <li class="nav-item">
-                                        <a href="#progress-company-document" class="nav-link" data-toggle="tab">
-                                            <span class="step-number">02</span>
-                                            <span class="step-title">Appraise Course</span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
                                         <a href="#progress-confirm-detail" class="nav-link" data-toggle="tab">
-                                            <span class="step-number">03</span>
+                                            <span class="step-number">02</span>
                                             <span class="step-title">Confirm Detail</span>
                                         </a>
                                     </li>
@@ -181,9 +158,10 @@
                                     <div class="progress-bar bg-success progress-bar-striped progress-bar-animated">
                                     </div>
                                 </div>
+
                                 <div class="tab-content twitter-bs-wizard-tab-content">
                                     <div class="tab-pane active" id="progress-seller-details" style="max-height: 600px; overflow-y: auto;">
-                                        <div class="row">
+                                        <div class="row" id="question-contianer">
                                             <div class="col-lg-12">
                                                 <div class="card bg-primary" id="section-main">
                                                     <h4 id="section-text" class="text-white mx-2">Section 1 Header Here</h4>
@@ -228,15 +206,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="tab-pane" id="progress-company-document">
-                                        <div>
-                                            <div class="row">
-                                                <div>
-                                                    <p class="text-muted">The Next Tab 2 Content</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                     <div class="tab-pane" id="progress-confirm-detail">
                                         <div class="row justify-content-center">
                                             <div class="col-lg-6">
@@ -254,6 +224,7 @@
                                             </div>
                                         </div>
                                     </div>
+
                                 </div>
                                 <ul class="pager wizard twitter-bs-wizard-pager-link">
                                     <li class="previous"><a href="javascript: void(0);">Previous</a></li>
@@ -276,6 +247,7 @@
 </div>
 
 
+
 <script src="{{ asset('root/mint/assets/libs/jquery/jquery.min.js') }}"></script>
 <script src="{{ asset('root/mint/assets/libs/sweetalert2/sweetalert2.min.js') }}"></script>
 
@@ -292,14 +264,6 @@
             $(this).select2({ dropdownParent: $(this).parent()});
             $(this).val($(this).find('option:first').val()).trigger('change');
         })
-
-        $('.say-something').click(function(){
-            $('#edit-data').hide('fade');
-            let lecturerName = $('.lec-name', $(this).closest('.card')).text().trim();;
-            $('.modal-title').text('you\'re Appraising [' + lecturerName + ']');
-            $('#my-modal').modal('show');
-        })
-
 
         $('#confirmcheck').change(function() {
             if ($(this).prop('checked')) {
@@ -319,7 +283,6 @@
             });
         });
 
-
         // Get the courses for the dropdown
         $.ajax({
             url: '{{ route("student.SemesterCourses") }}',
@@ -338,6 +301,102 @@
                 console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
             }
         }); 
+
+        // GET Lecturersinformation
+        $('#courses').on('change', function() {
+            let course_id = $(this).val();
+            $.ajax({
+                url: '{{ route("get.lecturersByCourse") }}',
+                type: 'GET',
+                data: { course_id: course_id },
+                dataType: 'json',
+                success: function(data) {
+                    let lecturerContainer = $('#lecturer-container');
+                    lecturerContainer.empty();
+
+                    // Check if data contains courses
+                    if (data.courses.length > 0) {
+                        // Loop through the courses (lecturers)
+                        $.each(data.courses, function(index, course) {
+                            // Create instance of each lecturer's data
+                            let lecturerCard = `
+                                <div class="col-lg-3 col-md-6 col-sm-12">
+                                    <div class="card plan-card" style="border-end-end-radius: 20px; border-bottom-left-radius: 20px">
+                                        <div class="card-body text-center">
+                                            <div class="pt-3 bg-primary" style="margin: -22px;">
+                                                <div class="img-animation cus-shape">
+                                                    <img src="{{ asset('root/mint/assets/images/users/avatar-8.jpg') }}" alt="#" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                                </div>
+                                                <h4 class="text-uppercase text-white lec-name">${course.lecturer}</h4>
+                                                <hr style="border-color: white;">
+                                            </div>
+
+                                            <div class="plan-features pt-3 text-muted">
+                                                <p class="mb-1">${course.email}</p>
+                                                <hr class="cus-hr">
+                                                <button type="button" class="btn btn-outline-primary mt-2 say-something" data-lecturer="${course.lecturer}" 
+                                                    data-course-id="${course.id}" data-course="${course.course}">
+                                                    <i class="mdi mdi-comment mx-1"></i>Say Something
+                                                </button>
+                                            </div>                    
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+
+                            // Append the dynamically created lecturer card to the container
+                            lecturerContainer.append(lecturerCard);
+                            $('#c-title').text("Course Title: " + course.course);
+                            $('#c-code').text("Course Code: " + course.course_code);
+                        });
+                    } else {
+                        lecturerContainer.html('<p>No lecturers found for this course.</p>');
+                    }
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+                }
+            });
+        });
+
+        // Event listener for the 'say-something' button, using event delegation
+        $('#lecturer-container').on('click', '.say-something', function() {
+            $('#edit-data').hide('fade');
+            
+            // Access the data attributes from the button
+            let lecturerName = $(this).data('lecturer');
+            let courseId = $(this).data('course-id');
+            let course = $(this).data('course');
+            
+            $('.modal-title').text('You\'re Appraising - ' + lecturerName + ' on: ' + course);
+            $('#my-modal').modal('show');
+   
+        });
+
+
+
+        // GET QUESTIONS
+        $.ajax({
+            url: '{{ route("student.questionaires") }}',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                let lecturerContainer = $('#question-contianer');
+                lecturerContainer.empty();
+
+                // Check if data contains courses
+                if (data.courses.length > 0) {
+                    $.each(data.courses, function(index, course) {
+                        
+                    });
+                } else {
+                    lecturerContainer.html('<p>No questions available at the moment</p>');
+                }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                console.error("AJAX request failed: " + textStatus + ", " + errorThrown);
+            }
+        });
 
 
 
